@@ -8,13 +8,13 @@
 
 
 # Cloudflare Workers 和 Pages 生成VLESS节点,实现订阅连接可以一键订阅节点
-- VLESS免费节点部署视频教程：[点击进入观看](https://youtu.be/I992KEADr80) 
-- Trojan免费节点部署视频教程：[点击进入观看](https://youtu.be/1ixc2A9rchM) 
+- VLESS免费节点部署视频教程：[点击进入观看](https://youtu.be/dPH63nITA0M) 
+- Trojan免费节点部署视频教程：[点击进入观看](https://youtu.be/uh27CVVi6HA) 
 - 优选IP和优选反代IP视频教程：[点击进入观看](https://youtu.be/pKrlfRRB0gU) 
 - 聚合节点订阅视频教程：[点击进入观看](https://youtu.be/YBO2hf96150)
 
 
-## Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=I992KEADr80&t=134s)
+## Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=151s)
 1. 部署 Cloudflare Worker：
    - 在 Cloudflare Worker 控制台中创建一个新的 Worker。
    - 将 [_worker.js](https://github.com/amclubs/am-cf-tunnel/blob/main/_worker.js) 的内容粘贴到 Worker 编辑器中。
@@ -31,7 +31,7 @@
 
 </details>
 
-## Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=I992KEADr80&t=787s)
+## Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=476s)
 1. 部署 Cloudflare Pages：
    - 下载 [_worker.js.zip](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/_worker.js.zip) 文件，并点上 Star !!!
    - 在 Cloudflare Pages 控制台中选择 `上传资产`后，为你的项目取名后点击 `创建项目`，然后上传你下载好的 [_worker.js.zip](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/_worker.js.zip) 文件后点击 `部署站点`。
@@ -53,7 +53,7 @@
 
 </details>
 
-## Pages GitHub 部署方法 [视频教程](https://youtu.be/6lhFb4hYTYw)
+## Pages GitHub 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
 1. 部署 Cloudflare Pages：
    - 在 Github 上先 Fork 本项目，并点上 Star !!!
    - 在 Cloudflare Pages 控制台中选择 `连接到 Git`后，选中 `am-cf-tunnel`项目后点击 `开始设置`。
@@ -113,7 +113,7 @@
    - Quantumult X
    - 小火箭
    - surge 
-   -[karing](https://karing.app/download)
+   - [karing](https://karing.app/download)
 
 # 感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
