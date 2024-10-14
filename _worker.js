@@ -735,7 +735,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
 		</br></br>
 		GitHub项目地址 点击Star!Star!Star!</br>
-		<a href="https://github.com/amclubs/am-cf-tunnel" target="_blank">https://github.com/am-cf-tunnel</a>
+		<a href="https://github.com/amclubs/am-cf-tunnel" target="_blank">https://github.com/amclubs/am-cf-tunnel</a>
 		</br></br>
 		YouTube频道,订阅频道,更多技术分享</br>
 		<a href="https://youtube.com/@AM_CLUB" target="_blank">https://youtube.com/@AM_CLUB</a>
