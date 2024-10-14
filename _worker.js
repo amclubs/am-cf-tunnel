@@ -886,7 +886,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 		if (match) {
 			address = match[1];
 			port = match[2] || port;
-			remarks = match[3] || address;
+			remarks = match[3] || host;
 		} else {
 			let ip, newPort, extra;
 
@@ -902,7 +902,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 
 			address = ip;
 			port = newPort || port;
-			remarks = extra || address;
+			remarks = extra || host;
 			// console.log(`splitNodeData---> ip: ${ip} \n extra: ${extra} \n port: ${port}`);
 		}
 
