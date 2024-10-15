@@ -10,9 +10,11 @@
 # Cloudflare Workers 和 Pages 生成VLESS节点,实现订阅连接可以一键订阅节点
 - VLESS免费节点部署视频教程：[点击进入观看](https://youtu.be/dPH63nITA0M) 
 - Trojan免费节点部署视频教程：[点击进入观看](https://youtu.be/uh27CVVi6HA) 
-- 优选IP和优选反代IP视频教程：[点击进入观看](https://youtu.be/pKrlfRRB0gU) 
+- 优选IP和优选反代IP视频教程：[点击进入观看](https://youtu.be/pKrlfRRB0gU)
+- GitHub私有库存储优选IP文：[点击进入观看](https://youtu.be/vX3U3FuuTT8)
+- CF免费KV存储优选IP文件：[点击进入观看](https://youtu.be/dzxezRV1v-o)
 - 聚合节点订阅视频教程：[点击进入观看](https://youtu.be/YBO2hf96150)
-
+- 免费域名视频教程：[点击进入观看](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
 
 ## Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=151s)
 1. 部署 Cloudflare Worker：
