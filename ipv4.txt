@@ -12,9 +12,6 @@ braden.ns.cloudflare.com
 [2606:4700:3036:6ed4:ffdf:f2ba:820b:ed5c]#IPV6
 [2606:4700:9b08:7ce1:8882:ba8c:2880:c619]#IPV6
 [2606:4700:9b08:dd59:154f:abf8:46b5:25bb]#IPV6
-[2606:4700:9b08:cbcf:344e:9c3:5f71:59e]#IPV6
-[2606:4700:9ae5:5a77:5efa:a40d:a9ad:f91b]#IPV6
-[2606:4700:9b08:4ed:5927:2d45:270d:5c25]#IPV6
 cris.ns.cloudflare.com
 craig.ns.cloudflare.com
 decker.ns.cloudflare.com
@@ -94,8 +91,5 @@ tasteatlas.com
 pixiv.net
 comicabc.com
 c.xf.free.hr
-tw04.nttkk.com
-www.ikantv.net
 yecaoyun.com
-government.se
 
