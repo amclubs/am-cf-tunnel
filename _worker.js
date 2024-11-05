@@ -114,19 +114,11 @@ export default {
 			if (PROXYIP) {
 				if (httpPattern.test(PROXYIP)) {
 					let ipUrlTxtAndCsv;
-					if (PROXYIP.endsWith('.txt')) {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, PROXYIP, null);
-
-					} else if (PROXYIP.endsWith('.csv')) {
+					if (PROXYIP.endsWith('.csv')) {
 						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, PROXYIP);
 
 					} else {
-						return new Response("PROXYIP是无效的文件类型:", {
-							headers: {
-								'Content-Type': 'text/html; charset=UTF-8',
-								'referer': 'https://www.google.com/search?q=AM科技',
-							},
-						});
+						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, PROXYIP, null);
 					}
 					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
 					proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
