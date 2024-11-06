@@ -113,12 +113,13 @@ export default {
 			userID = (UUID || userID).toLowerCase();
 			if (PROXYIP) {
 				if (httpPattern.test(PROXYIP)) {
+					let proxyIpTxt = await addIpText(PROXYIP);
 					let ipUrlTxtAndCsv;
 					if (PROXYIP.endsWith('.csv')) {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, PROXYIP);
+						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, proxyIpTxt);
 
 					} else {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, PROXYIP, null);
+						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxt, null);
 					}
 					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
 					proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
