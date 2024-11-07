@@ -193,7 +193,7 @@ export default {
 					return new Response(await nginx(), {
 						headers: {
 							'Content-Type': 'text/html; charset=UTF-8',
-							'referer': 'https://www.google.com/search?q=am.809098.xyz',
+							'referer': 'https://www.google.com/search?q=AM科技',
 						},
 					});
 				}
