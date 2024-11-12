@@ -14,13 +14,13 @@ let userID = '2928d83a-ca75-4d52-b437-fa78c7601378';
 
 // Proxy IPs to choose from
 let proxyIPs = [
-	'cdn.xn--b6gac.eu.org',
-	'cdn-all.xn--b6gac.eu.org',
-	'workers.cloudflare.cyou'
+	'proxyip.amclubs.camdvr.org',
+	'proxyip.amclubs.kozow.com'
 ];
 // Randomly select a proxy IP from the list
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 let proxyPort = 443;
+let proxyIpTxt = 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt';
 
 // Setting the socks5 will ignore proxyIP
 // Example:  user:pass@host:port  or  host:port
@@ -127,10 +127,16 @@ export default {
 					proxyIPs = await addIpText(PROXYIP);
 					proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 				}
-				const [ip, port] = proxyIP.split(':');
-				proxyIP = ip;
-				proxyPort = port || proxyPort;
+			} else {
+				let proxyIpTxts = await addIpText(proxyIpTxt);
+				let ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxts, null);
+				let updatedIps = ipUrlTxtAndCsv.txt.map(ip => `amclubs${download}.${ip}`);
+				const uniqueIpTxt = [...new Set([...updatedIps, ...proxyIPs])];
+				proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
 			}
+			const [ip, port] = proxyIP.split(':');
+			proxyIP = ip;
+			proxyPort = port || proxyPort;
 
 			const url = new URL(request.url);
 			socks5 = SOCKS5 || url.searchParams.get('socks5') || socks5;
