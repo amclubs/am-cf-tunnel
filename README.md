@@ -81,7 +81,7 @@
 </details>
 
 
-## 变量说明
+## 变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | UUID             | 866853eb-5293-4f09-bf00-e13eb237c655 |✅| [在线获取UUID](https://1024tools.com/uuid)                                        |  |
