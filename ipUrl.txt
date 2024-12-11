@@ -1,2 +1,2 @@
-
+https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.csv
 https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt
