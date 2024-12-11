@@ -102,22 +102,18 @@
 | TG_ID           | 6946912345                            |❌ | 接收TG通知的账户数字ID                                       ||
 
 
-## 订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
-- [(安卓)v2rayNG](https://github.com/2dust/v2rayNG/releases)      [(安卓)singbox](https://github.com/SagerNet/sing-box/releases)      [(苹果)singbox](https://github.com/SagerNet/sing-box/releases)      [(苹果)Hiddify](https://github.com/hiddify/hiddify-next/releases)
-- [(win)v2rayN](https://github.com/2dust/v2rayN/releases)      [(win)singbox](https://github.com/SagerNet/sing-box/releases)      [(win)clashvergerev](https://github.com/clash-verge-rev/clash-verge-rev/releases)      [(win)Hiddify](https://github.com/hiddify/hiddify-next/releases)      [(win)clashnyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu/releases)      [(mac)clashnyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu/releases)
-- [(mac)v2rayU](https://github.com/yanue/V2rayU/releases)      [(mac)singbox](https://github.com/SagerNet/sing-box/releases)      [(mac)clashvergerev](https://github.com/clash-verge-rev/clash-verge-rev/releases)      [(mac)Hiddify](https://github.com/hiddify/hiddify-next/releases)
-- [(安卓、苹果、win、mac)karing](https://karing.app/download)
-
-## 已适配自适应订阅内容
-   - [v2rayN](https://github.com/2dust/v2rayN)
-   - [v2rayU](https://github.com/yanue/V2rayU/releases)
-   - [sing-box](https://github.com/SagerNet/sing-box)
+## 已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
+   - [v2rayN](https://github.com/2dust/v2rayN/releases) 支持(win)
+   - [v2rayNG](https://github.com/2dust/v2rayNG/releases) 支持(安卓)
+   - [v2rayU](https://github.com/yanue/V2rayU/releases) 支持(mac)
+   - [sing-box](https://github.com/SagerNet/sing-box/releases) 支持(安卓、苹果、win、mac)
    - clash.meta（[clash-verge-rev
-](https://github.com/clash-verge-rev/clash-verge-rev)，[Clash Nyanpasu](https://github.com/keiko233/clash-nyanpasu)，ClashX Meta、openclash）
-   - Quantumult X
-   - 小火箭
-   - surge 
-   - [karing](https://karing.app/download)
+](https://github.com/clash-verge-rev/clash-verge-rev)，[Clash Nyanpasu](https://github.com/keiko233/clash-nyanpasu/releases)，ClashX Meta、[openclash](https://github.com/vernesong/OpenClash/releases)）支持(安卓、苹果、win、mac)
+   - [Quantumult X](https://apps.apple.com/us/app/quantumult-x/id1443988620) 支持(苹果)
+   - [小火箭](https://apps.apple.com/us/app/shadowrocket/id932747118) 支持(苹果)
+   - [surge](https://apps.apple.com/us/app/surge-5/id1442620678) 支持(苹果)
+   - [karing](https://karing.app/download) 支持(安卓、苹果、win、mac)
+   - [Hiddify](https://github.com/hiddify/hiddify-next/releases) 支持(安卓、苹果、win、mac)
 
 # 感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
