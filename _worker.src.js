@@ -20,7 +20,7 @@ let proxyIPs = [
 // Randomly select a proxy IP from the list
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 let proxyPort = 443;
-let proxyIpTxt = 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt';
+let proxyIpTxt = atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vcHJveHlpcC50eHQ=');
 
 // Setting the socks5 will ignore proxyIP
 // Example:  user:pass@host:port  or  host:port
@@ -33,18 +33,20 @@ let parsedSocks5 = {};
 let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg=';
 
 // Preferred address API interface
+let ipUrl = [
+
+];
 let ipUrlTxt = [
-	'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.txt',
-	// 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv6.txt'
+	atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vaXB2NC50eHQ=')
 ];
 let ipUrlCsv = [
-	// 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.csv'
+	// atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vaXB2NC5jc3Y=')
 ];
 // Preferred addresses with optional TLS subscription
 let ipLocal = [
 	'visa.cn:443#youtube.com/@AM_CLUB 订阅频道获取更多教程',
 	'icook.hk#t.me/AM_CLUBS 加入交流群解锁更多优选节点',
-	'time.is:443#github.com/amclubs GitHub仓库查看更多项目'
+	'time.is#github.com/amclubs GitHub仓库查看更多项目'
 ];
 let noTLS = 'false';
 let sl = 5;
@@ -65,7 +67,7 @@ let fakeHostName;
 
 // Subscription and conversion details
 let subProtocol = 'https';
-let subConverter = 'url.v1.mk'; // Subscription conversion backend using Sheep's function
+let subConverter = atob('dXJsLnYxLm1r'); // Subscription conversion backend using Sheep's function
 let subConfig = "https://raw.githubusercontent.com/amclubs/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini"; // Subscription profile
 let fileName = 'AM%E7%A7%91%E6%8A%80';
 let isBase64 = true;
@@ -73,6 +75,8 @@ let isBase64 = true;
 let botToken = '';
 let chatID = '';
 
+let projectName = atob('YW1jbHVicy9hbS1jZi10dW5uZWw');
+let ytName = atob('aHR0cHM6Ly95b3V0dWJlLmNvbS9AQU1fQ0xVQg==');
 const httpPattern = /^http(s)?:\/\/.+/;
 
 if (!isValidUUID(userID)) {
@@ -94,6 +98,7 @@ export default {
 				SOCKS5,
 				DNS_RESOLVER_URL,
 				IP_LOCAL,
+				IP_URL,
 				IP_URL_TXT,
 				IP_URL_CSV,
 				NO_TLS,
@@ -150,6 +155,21 @@ export default {
 			if (IP_LOCAL) {
 				ipLocal = await addIpText(IP_LOCAL);
 			}
+			const newCsvUrls = [];
+			const newTxtUrls = [];
+			if (IP_URL) {
+				ipUrlTxt = [];
+				ipUrl = await addIpText(IP_URL);
+				ipUrl = await getIpUrlTxt(ipUrl);
+				ipUrl.forEach(url => {
+					if (url.endsWith('.csv')) {
+						newCsvUrls.push(url); 
+					} else {
+						newTxtUrls.push(url); 
+					}
+				});
+
+			}
 			//兼容旧的，如果有IP_URL_TXT新的则不用旧的
 			if (ADDRESSESAPI) {
 				ipUrlTxt = await addIpText(ADDRESSESAPI);
@@ -160,6 +180,8 @@ export default {
 			if (IP_URL_CSV) {
 				ipUrlCsv = await addIpText(IP_URL_CSV);
 			}
+			ipUrlCsv = [...new Set([...ipUrlCsv, ...newCsvUrls])];
+			ipUrlTxt = [...new Set([...ipUrlTxt, ...newTxtUrls])];
 
 			noTLS = (NO_TLS || noTLS);
 			sl = (SL || sl);
@@ -175,7 +197,7 @@ export default {
 				: [undefined, subConverter];
 			subConverter = subConverterWithoutProtocol;
 
-			// console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrlTxt: ${ipUrlTxt} `);
+			//console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrl: ${ipUrl} \n ipUrlTxt: ${ipUrlTxt} `);
 
 			//const uuid = url.searchParams.get('uuid')?.toLowerCase() || 'null';
 			const ua = request.headers.get('User-Agent') || 'null';
@@ -512,7 +534,7 @@ async function getIpUrlTxt(urlTxts) {
 			method: 'GET',
 			headers: {
 				'Accept': 'text/html,application/xhtml+xml,application/xml;',
-				'User-Agent': 'amclubs/am-cf-tunnel'
+				'User-Agent': projectName
 			},
 			signal: controller.signal // Attach the AbortController's signal to the fetch request to allow cancellation when needed
 		}).then(response => response.ok ? response.text() : Promise.reject())));
@@ -551,6 +573,7 @@ async function getIpUrlCsv(urlCsvs, tls) {
 
 	// Fetch and process all CSVs concurrently
 	const fetchCsvPromises = urlCsvs.map(async (csvUrl) => {
+		// console.error('getIpUrlCsv--> csvUrl:', csvUrl);
 		try {
 			const response = await fetch(csvUrl);
 
@@ -592,7 +615,6 @@ async function getIpUrlCsv(urlCsvs, tls) {
 				if (columns.length < header.length) {
 					continue;
 				}
-
 				// Check if TLS matches and speed is greater than sl
 				const tlsValue = columns[tlsIndex].toUpperCase();
 				const speedValue = parseFloat(columns[speedIndex]);
@@ -705,7 +727,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	// HTML Head with CSS and FontAwesome library
 	const htmlHead = `
     <head>
-      <title>am-cf-tunnel(AM科技)</title>
+      <title>${projectName}(${fileName})</title>
       <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@AM_CLUB and follow GitHub https://github.com/amclubs ' />
       <style>
         body {
@@ -756,10 +778,10 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
 		</br></br>
 		GitHub项目地址 点击Star!Star!Star!</br>
-		<a href="https://github.com/amclubs/am-cf-tunnel" target="_blank">https://github.com/amclubs/am-cf-tunnel</a>
+		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
 		</br></br>
 		YouTube频道,订阅频道,更多技术分享</br>
-		<a href="https://youtube.com/@AM_CLUB" target="_blank">https://youtube.com/@AM_CLUB</a>
+		<a href="${ytName}" target="_blank">${ytName}</a>
 		</p>
   `;
 
@@ -853,7 +875,7 @@ async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID,
 		const response = await fetch(url, {
 			headers: {
 				//'Content-Type': 'text/html; charset=UTF-8',
-				'User-Agent': `${userAgent} am-cf-tunnel/amclubs`
+				'User-Agent': `${userAgent} ${projectName}`
 			}
 		});
 		responseBody = await response.text();
