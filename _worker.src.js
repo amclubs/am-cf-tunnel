@@ -92,7 +92,7 @@ export default {
 	*/
 	async fetch(request, env, ctx) {
 		try {
-			const {
+			let {
 				UUID,
 				PROXYIP,
 				SOCKS5,
@@ -114,8 +114,11 @@ export default {
 				//兼容
 				ADDRESSESAPI,
 			} = env;
-
 			userID = (UUID || userID).toLowerCase();
+
+			const url = new URL(request.url);
+
+			PROXYIP = url.searchParams.get('PROXYIP') || PROXYIP;
 			if (PROXYIP) {
 				if (httpPattern.test(PROXYIP)) {
 					let proxyIpTxt = await addIpText(PROXYIP);
@@ -143,34 +146,37 @@ export default {
 			proxyIP = ip;
 			proxyPort = port || proxyPort;
 
-			const url = new URL(request.url);
-			socks5 = SOCKS5 || url.searchParams.get('socks5') || socks5;
+			socks5 = url.searchParams.get('SOCKS5') || SOCKS5 || socks5;
 			parsedSocks5 = await parseSocks5FromUrl(socks5, url);
 			if (parsedSocks5) {
 				socks5Enable = true;
 			}
 
-			dohURL = (DNS_RESOLVER_URL || dohURL);
+			dohURL = url.searchParams.get('DNS_RESOLVER_URL') || DNS_RESOLVER_URL || dohURL;
 
+			IP_LOCAL = url.searchParams.get('IP_LOCAL') || IP_LOCAL;
 			if (IP_LOCAL) {
 				ipLocal = await addIpText(IP_LOCAL);
 			}
 			const newCsvUrls = [];
 			const newTxtUrls = [];
+			IP_URL = url.searchParams.get('IP_URL') || IP_URL;
 			if (IP_URL) {
 				ipUrlTxt = [];
 				ipUrl = await addIpText(IP_URL);
 				ipUrl = await getIpUrlTxt(ipUrl);
 				ipUrl.forEach(url => {
 					if (url.endsWith('.csv')) {
-						newCsvUrls.push(url); 
+						newCsvUrls.push(url);
 					} else {
-						newTxtUrls.push(url); 
+						newTxtUrls.push(url);
 					}
 				});
-
 			}
 			//兼容旧的，如果有IP_URL_TXT新的则不用旧的
+			ADDRESSESAPI = url.searchParams.get('ADDRESSESAPI') || ADDRESSESAPI;
+			IP_URL_TXT = url.searchParams.get('IP_URL_TXT') || IP_URL_TXT;
+			IP_URL_CSV = url.searchParams.get('IP_URL_CSV') || IP_URL_CSV;
 			if (ADDRESSESAPI) {
 				ipUrlTxt = await addIpText(ADDRESSESAPI);
 			}
@@ -183,13 +189,13 @@ export default {
 			ipUrlCsv = [...new Set([...ipUrlCsv, ...newCsvUrls])];
 			ipUrlTxt = [...new Set([...ipUrlTxt, ...newTxtUrls])];
 
-			noTLS = (NO_TLS || noTLS);
-			sl = (SL || sl);
-			subConfig = (SUB_CONFIG || subConfig);
-			subConverter = (SUB_CONVERTER || subConverter);
-			fileName = (SUB_NAME || fileName);
-			botToken = (TG_TOKEN || botToken);
-			chatID = (TG_ID || chatID);
+			noTLS = url.searchParams.get('NO_TLS') || NO_TLS || noTLS;
+			sl = url.searchParams.get('SL') || SL || sl;
+			subConfig = url.searchParams.get('SUB_CONFIG') || SUB_CONFIG || subConfig;
+			subConverter = url.searchParams.get('SUB_CONVERTER') || SUB_CONVERTER || subConverter;
+			fileName = url.searchParams.get('SUB_NAME') || SUB_NAME || fileName;
+			botToken = url.searchParams.get('TG_TOKEN') || TG_TOKEN || botToken;
+			chatID = url.searchParams.get('TG_ID') || TG_ID || chatID;
 
 			// Unified protocol for handling subconverters
 			const [subProtocol, subConverterWithoutProtocol] = (subConverter.startsWith("http://") || subConverter.startsWith("https://"))
@@ -197,7 +203,7 @@ export default {
 				: [undefined, subConverter];
 			subConverter = subConverterWithoutProtocol;
 
-			//console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrl: ${ipUrl} \n ipUrlTxt: ${ipUrlTxt} `);
+			// console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrl: ${ipUrl} \n ipUrlTxt: ${ipUrlTxt} `);
 
 			//const uuid = url.searchParams.get('uuid')?.toLowerCase() || 'null';
 			const ua = request.headers.get('User-Agent') || 'null';
@@ -474,7 +480,7 @@ async function getchannelConfig(userID, host, userAgent, _url) {
 }
 
 function getHtmlResponse(socks5Enable, userID, host, v2ray, clash) {
-	const subRemark = `IP_URL_TXT/IP_URL_CSV/IP_LOCAL`;
+	const subRemark = `IP_LOCAL/IP_URL/IP_URL_TXT/IP_URL_CSV`;
 	let proxyIPRemark = `PROXYIP: ${proxyIP}`;
 
 	if (socks5Enable) {
