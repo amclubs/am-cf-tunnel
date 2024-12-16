@@ -22,7 +22,6 @@ jobs:
           mv _worker.js _worker.js.bak
         fi
         cp _worker.src.js _worker.js
-        # 将 _worker.js 文件压缩到 _worker.src.js.zip 中
         zip _worker.src.js.zip _worker.js
         rm _worker.js
         if [ -f _worker.js.bak ]; then
