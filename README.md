@@ -17,6 +17,7 @@
 - 免费域名视频教程：[点击进入观看](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
 - 解决常见订阅测试-1：[点击进入观看](https://youtu.be/kYQxV1G-ePw)
 - 获取CF自家域名无限节点：[点击进入观看](https://youtu.be/novrPiMsK70)
+- 报错 Error 1101 和 522 解决方案教程：[点击进入观看](https://youtu.be/4fcyJjstFdg)
 
 ## Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=151s)
 1. 部署 Cloudflare Worker：
