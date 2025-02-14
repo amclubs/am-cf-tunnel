@@ -442,6 +442,33 @@ async function parseSocks5FromUrl(socks5, url) {
 	return null;
 }
 
+function getFileType(url) {
+	const baseUrl = url.split('@')[0];
+
+	const extension = baseUrl.match(/\.(csv|txt)$/i);
+
+	if (extension) {
+		return extension[1].toLowerCase();
+	} else {
+		return 'txt';
+	}
+}
+
+async function getFileContentType(url) {
+	try {
+		const response = await fetch(url);
+		const text = await response.text();
+
+		if (text.includes(',')) {
+			return 'csv';
+		} else {
+			return 'txt';
+		}
+	} catch (error) {
+		console.error('Error fetching file:', error);
+		return null;
+	}
+}
 
 /** ---------------------Get data------------------------------ */
 
