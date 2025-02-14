@@ -1,8 +1,9 @@
 /**
- * YouTube Channel: https://youtube.com/@AM_CLUB
+ * YouTube Channel: https://youtube.com/@am_clubs
+ * Telegram Group: https://t.me/am_clubs
  * GitHub Repository: https://github.com/amclubs
- * Telegram Group: https://t.me/AM_CLUBS
- * Personal Blog: https://am.809098.xyz
+ * Personal Blog: https://amclubs.blogspot.com
+ * Personal Blog: https://amclubss.com
  */
 
 // @ts-ignore
@@ -10,7 +11,8 @@ import { connect } from 'cloudflare:sockets';
 
 // Generate your own UUID using the following command in PowerShell:
 // Powershell -NoExit -Command "[guid]::NewGuid()"
-let userID = '88deb2d4-96e2-448b-b9c6-6e2a5f26fc8f';
+let userID = 'd0298536-d670-4045-bbb1-ddd5ea68683e';
+let kvUUID;
 
 // Proxy IPs to choose from
 let proxyIPs = [
@@ -44,9 +46,9 @@ let ipUrlCsv = [
 ];
 // Preferred addresses with optional TLS subscription
 let ipLocal = [
-	'visa.cn:443#youtube.com/@AM_CLUB 订阅频道获取更多教程',
-	'icook.hk#t.me/AM_CLUBS 加入交流群解锁更多优选节点',
-	'time.is#github.com/amclubs GitHub仓库查看更多项目'
+	'visa.cn:443#youtube.com/@am_clubs AM科技(订阅频道观看教程)',
+	'icook.hk#t.me/am_clubs TG群(加入解锁免费节点)',
+	'time.is#github.com/amclubs GitHub仓库(关注查看新功能)'
 ];
 let noTLS = 'false';
 let sl = 5;
