@@ -1,8 +1,9 @@
 /**
- * YouTube Channel: https://youtube.com/@AM_CLUB
+ * YouTube Channel: https://youtube.com/@am_clubs
+ * Telegram Group: https://t.me/am_clubs
  * GitHub Repository: https://github.com/amclubs
- * Telegram Group: https://t.me/AM_CLUBS
- * Personal Blog: https://am.809098.xyz
+ * Personal Blog: https://amclubs.blogspot.com
+ * Personal Blog: https://amclubss.com
  */
 
 // @ts-ignore
@@ -10,7 +11,8 @@ import { connect } from 'cloudflare:sockets';
 
 // Generate your own UUID using the following command in PowerShell:
 // Powershell -NoExit -Command "[guid]::NewGuid()"
-let userID = '88deb2d4-96e2-448b-b9c6-6e2a5f26fc8f';
+let userID = 'd0298536-d670-4045-bbb1-ddd5ea68683e';
+let kvUUID;
 
 // Proxy IPs to choose from
 let proxyIPs = [
@@ -44,8 +46,8 @@ let ipUrlCsv = [
 ];
 // Preferred addresses with optional TLS subscription
 let ipLocal = [
-	'visa.cn:443#youtube.com/@AM_CLUB AM科技(订阅频道观看教程)',
-	'icook.hk#t.me/AM_CLUBS TG群(加入解锁免费节点)',
+	'visa.cn:443#youtube.com/@am_clubs AM科技(订阅频道观看教程)',
+	'icook.hk#t.me/am_clubs TG群(加入解锁免费节点)',
 	'time.is#github.com/amclubs GitHub仓库(关注查看新功能)'
 ];
 let noTLS = 'false';
@@ -76,7 +78,7 @@ let botToken = '';
 let chatID = '';
 
 let projectName = atob('YW1jbHVicy9hbS1jZi10dW5uZWw');
-let ytName = atob('aHR0cHM6Ly95b3V0dWJlLmNvbS9AQU1fQ0xVQg==');
+let ytName = atob('aHR0cHM6Ly95b3V0dWJlLmNvbS9AYW1fY2x1YnM=');
 const httpPattern = /^http(s)?:\/\/.+/;
 
 if (!isValidUUID(userID)) {
@@ -114,7 +116,12 @@ export default {
 				//兼容
 				ADDRESSESAPI,
 			} = env;
-			userID = (UUID || userID).toLowerCase();
+			const kvCheckResponse = await checkKVNamespaceBinding(env);
+			if (!kvCheckResponse) {
+				kvUUID = await getKVData(env);
+				// console.log(`kvUUID: ${kvUUID} \n `);
+			}
+			userID = (kvUUID || UUID || userID).toLowerCase();
 
 			const url = new URL(request.url);
 
@@ -270,6 +277,16 @@ export default {
 						status: 200,
 						headers: commonHeaders,
 					});
+				}
+
+				case `/${userID}/ui`: {
+					return await showKVPage(env);
+				}
+				case `/${userID}/get`: {
+					return getKVData(env);
+				}
+				case `/${userID}/set`: {
+					return setKVData(request, env);
 				}
 
 				default: {
@@ -727,7 +744,6 @@ async function getIpUrlCsv(urlCsvs, tls) {
 	return newAddressesCsv;
 }
 
-
 const protocolTypeBase64 = 'dmxlc3M=';
 /**
  * Get node configuration information
@@ -822,7 +838,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const htmlHead = `
     <head>
       <title>${projectName}(${fileName})</title>
-      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@AM_CLUB and follow GitHub https://github.com/amclubs ' />
+      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@am_clubs and follow GitHub https://github.com/amclubs ' />
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -869,7 +885,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const header = `
 		<p align="left" style="padding-left: 20px; margin-top: 20px;">
 		Telegram交流群 技术大佬~在线交流</br>
-		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
+		<a href="t.me/am_clubs" target="_blank">t.me/am_clubs</a>
 		</br></br>
 		GitHub项目地址 点击Star!Star!Star!</br>
 		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
@@ -1024,7 +1040,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 		let proxyip = "";
 
 		const match = address.match(regex);
-		if (match && !ipTxt.includes('@AM_CLUB')) {
+		if (match && !ipTxt.includes('@am_clubs')) {
 			address = match[1];
 			port = match[2] || port;
 			remarks = match[3] || host;
@@ -1033,7 +1049,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 		} else {
 			let ip, newPort, extra;
 
-			if (ipTxt.includes('@') && !ipTxt.includes('@AM_CLUB')) {
+			if (ipTxt.includes('@') && !ipTxt.includes('@am_clubs')) {
 				const [addressPart, proxyipPart] = ipTxt.split('@');
 				ipTxt = addressPart;
 				proxyip = proxyipPart;
@@ -1210,6 +1226,152 @@ async function getCFSum(accountId, accountIndex, email, key, startDate, endDate)
 		return [0, 0];
 	}
 }
+
+// const MY_KV_NAMESPACE = atob('YW1jbHVicw==');
+const MY_KV_UUID_KEY = atob('VVVJRA==');;
+
+async function checkKVNamespaceBinding(env) {
+	if (typeof env.amclubs === 'undefined') {
+		return new Response('Error: amclubs KV_NAMESPACE is not bound.', {
+			status: 400,
+		})
+	}
+}
+
+async function getKVData(env) {
+	const value = await env.amclubs.get(MY_KV_UUID_KEY);
+	return value ? String(value) : '';
+	// return new Response(value || 'Key not found', {
+	// 	status: value ? 200 : 404
+	// });
+}
+
+async function setKVData(request, env) {
+	if (request.method !== 'POST') {
+		return new Response('Use POST method to set values', { status: 405 });
+	}
+
+	const value = await request.text();
+	// console.log(`setKVData----> Received value: ${value} \n`);
+
+	try {
+		await env.amclubs.put(MY_KV_UUID_KEY, value);
+
+		// 读取存入的值，确认是否成功
+		const storedValue = await env.amclubs.get(MY_KV_UUID_KEY);
+		if (storedValue === value) {
+			return new Response(`${MY_KV_UUID_KEY} updated successfully`, { status: 200 });
+		} else {
+			return new Response(`Error: Value verification failed after storage`, { status: 500 });
+		}
+	} catch (error) {
+		return new Response(`Error storing value: ${error.message}`, { status: 500 });
+	}
+}
+
+async function showKVPage(env) {
+	const kvCheckResponse = await checkKVNamespaceBinding(env);
+	if (kvCheckResponse) {
+		return kvCheckResponse;
+	}
+	const value = await getKVData(env);
+	return new Response(
+		`<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8"> 
+        <title>${fileName}</title>
+        <style>
+          html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center; 
+            font-family: Arial, sans-serif;
+          }
+
+          .container {
+            text-align: center; 
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            width: 400px;
+          }
+
+          h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+          }
+
+          textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+          }
+
+          button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+          }
+
+          button:hover {
+            background-color: #45a049;
+          }
+
+          #saveStatus {
+            color: green;
+            margin-top: 10px;
+          }
+        </style>
+        <script>
+          async function fetchData() {
+            const response = await fetch('/${userID}/get');
+            const text = await response.text();
+            document.getElementById('value').value = text;
+          }
+
+          async function saveData() {
+            const value = document.getElementById('value').value;
+            const response = await fetch('/${userID}/set', { method: 'POST', body: value });
+            const responseText = await response.text();
+
+            document.getElementById('saveStatus').innerText = responseText;
+          }
+        </script>
+      </head>
+      <body>
+        <div class="container">
+          <h1>UUID 页面</h1>
+          <label for="key">Key:</label>
+          <input type="text" id="key" value="${MY_KV_UUID_KEY}" readonly />
+          <br/><br/>
+          <label for="value">Value:</label>
+          <textarea id="value">${value || ''}</textarea>
+          <br/><br/>
+          <button onclick="saveData()">Save</button>
+          <div id="saveStatus"></div>
+        </div>
+      </body>
+    </html>`,
+		{
+			headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+			status: 200,
+		}
+	);
+}
+
 
 const API_URL = 'http://ip-api.com/json/';
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
