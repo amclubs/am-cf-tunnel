@@ -1,3 +1,50 @@
+Primary navigation
+Homepage
+Project
+A
+am-cf-tunnel
+
+Pinned
+Issues
+0
+Merge requests
+0
+
+Manage
+
+Plan
+
+Code
+
+Build
+
+Secure
+
+Deploy
+
+Operate
+
+Monitor
+
+Analyze
+
+Settings
+You can't push or pull repositories using SSH until you add an SSH key to your profile.
+
+Auto DevOps
+Automatically build, test, and deploy your application based on a predefined CI/CD configuration. Learn more in the Auto DevOps documentation.
+
+amclubs
+am-cf-tunnel
+am-cf-tunnel
+_worker.js
+_worker.js
+amclubs's avatar
+update
+amclubs authored 10 hours ago
+8be48294
+_worker.js
+65.73 KiB
 /**
  * YouTube Channel: https://youtube.com/@am_clubs
  * Telegram Group: https://t.me/am_clubs
@@ -5,15 +52,12 @@
  * Personal Blog: https://amclubs.blogspot.com
  * Personal Blog: https://amclubss.com
  */
-
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
-
 // Generate your own UUID using the following command in PowerShell:
 // Powershell -NoExit -Command "[guid]::NewGuid()"
 let userID = 'd0298536-d670-4045-bbb1-ddd5ea68683e';
 let kvUUID;
-
 // Proxy IPs to choose from
 let proxyIPs = [
 	'proxyip.amclubs.camdvr.org',
@@ -23,20 +67,16 @@ let proxyIPs = [
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 let proxyPort = 443;
 let proxyIpTxt = atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vcHJveHlpcC50eHQ=');
-
 // Setting the socks5 will ignore proxyIP
 // Example:  user:pass@host:port  or  host:port
 let socks5 = '';
 let socks5Enable = false;
 let parsedSocks5 = {};
-
 // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
 // DNS-over-HTTPS URL
 let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg=';
-
 // Preferred address API interface
 let ipUrl = [
-
 ];
 let ipUrlTxt = [
 	atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vaXB2NC50eHQ=')
@@ -52,21 +92,17 @@ let ipLocal = [
 ];
 let noTLS = 'false';
 let sl = 5;
-
 let tagName = atob('YW1jbHVicw==');
 let subUpdateTime = 6; // Subscription update time in hours
 let timestamp = 4102329600000; // Timestamp for the end date (2099-12-31)
 let total = 99 * 1125899906842624; // PB (perhaps referring to bandwidth or total entries)
 let download = Math.floor(Math.random() * 1099511627776);
 let upload = download;
-
 // Network protocol type
 let network = 'ws'; // WebSocket
-
 // Fake UUID and hostname for configuration generation
 let fakeUserID;
 let fakeHostName;
-
 // Subscription and conversion details
 let subProtocol = 'https';
 let subConverter = atob('dXJsLnYxLm1r'); // Subscription conversion backend using Sheep's function
@@ -116,7 +152,12 @@ export default {
 				//兼容
 				ADDRESSESAPI,
 			} = env;
-			userID = (UUID || userID).toLowerCase();
+			const kvCheckResponse = await checkKVNamespaceBinding(env);
+			if (!kvCheckResponse) {
+				kvUUID = await getKVData(env);
+				// console.log(`kvUUID: ${kvUUID} \n `);
+			}
+			userID = (kvUUID || UUID || userID).toLowerCase();
 
 			const url = new URL(request.url);
 
@@ -166,9 +207,9 @@ export default {
 			if (IP_URL) {
 				ipUrlTxt = [];
 				ipUrl = await addIpText(IP_URL);
-				ipUrl = await getIpUrlTxt(ipUrl);
+				ipUrl = await getIpUrlTxtToArry(ipUrl);
 				ipUrl.forEach(url => {
-					if (url.endsWith('.csv')) {
+					if (getFileType(url) === 'csv') {
 						newCsvUrls.push(url);
 					} else {
 						newTxtUrls.push(url);
@@ -272,6 +313,16 @@ export default {
 						status: 200,
 						headers: commonHeaders,
 					});
+				}
+
+				case `/${userID}/ui`: {
+					return await showKVPage(env);
+				}
+				case `/${userID}/get`: {
+					return getKVData(env);
+				}
+				case `/${userID}/set`: {
+					return setKVData(request, env);
 				}
 
 				default: {
@@ -491,9 +542,9 @@ async function getchannelConfig(userID, host, userAgent, _url) {
 	if (host.includes('.workers.dev')) {
 		port = 80;
 	}
-	const [v2ray, clash] = getConfigLink(userID, host, host, port, host);
 
 	if (userAgent.includes('mozilla') && !subParams.some(param => _url.searchParams.has(param))) {
+		const [v2ray, clash] = getConfigLink(userID, host, host, port, host);
 		return getHtmlResponse(socks5Enable, userID, host, v2ray, clash);
 	}
 
@@ -548,6 +599,59 @@ async function getIpUrlTxtAndCsv(noTLS, urlTxts, urlCsvs) {
 }
 
 async function getIpUrlTxt(urlTxts) {
+	if (!urlTxts || urlTxts.length === 0) {
+		return [];
+	}
+
+	let ipTxt = "";
+	const controller = new AbortController();
+	const timeout = setTimeout(() => {
+		controller.abort();
+	}, 2000);
+
+	try {
+		const urlMappings = urlTxts.map(entry => {
+			const [url, suffix] = entry.split('@');
+			return { url, suffix: suffix ? `@${suffix}` : '' };
+		});
+
+		const responses = await Promise.allSettled(
+			urlMappings.map(({ url }) =>
+				fetch(url, {
+					method: 'GET',
+					headers: {
+						'Accept': 'text/html,application/xhtml+xml,application/xml;',
+						'User-Agent': projectName
+					},
+					signal: controller.signal
+				}).then(response => response.ok ? response.text() : Promise.reject())
+			)
+		);
+
+		for (let i = 0; i < responses.length; i++) {
+			const response = responses[i];
+			if (response.status === 'fulfilled') {
+				const suffix = urlMappings[i].suffix;
+				const content = response.value
+					.split('\n')
+					.filter(line => line.trim() !== "")
+					.map(line => line + suffix)
+					.join('\n');
+
+				ipTxt += content + '\n';
+			}
+		}
+	} catch (error) {
+		console.error(error);
+	} finally {
+		clearTimeout(timeout);
+	}
+	// console.log(`ipTxt: ${ipTxt} \n `);
+	const newIpTxt = await addIpText(ipTxt);
+	return newIpTxt;
+}
+
+async function getIpUrlTxtToArry(urlTxts) {
 	if (!urlTxts || urlTxts.length === 0) {
 		return [];
 	}
@@ -608,9 +712,13 @@ async function getIpUrlCsv(urlCsvs, tls) {
 
 	// Fetch and process all CSVs concurrently
 	const fetchCsvPromises = urlCsvs.map(async (csvUrl) => {
-		// console.error('getIpUrlCsv--> csvUrl:', csvUrl);
+		// Parse the URL to get the suffix (after @)
+		const [url, suffix] = csvUrl.split('@');
+		const suffixText = suffix ? `@${suffix}` : '';  // If no @, suffixText will be an empty string
+
 		try {
-			const response = await fetch(csvUrl);
+			const response = await fetch(url);
+
 
 			// Ensure the response is successful
 			if (!response.ok) {
@@ -645,7 +753,6 @@ async function getIpUrlCsv(urlCsvs, tls) {
 			// Process the data rows
 			for (let i = 1; i < lines.length; i++) {
 				const columns = lines[i].trim().split(',');
-
 				// Skip empty or malformed rows
 				if (columns.length < header.length) {
 					continue;
@@ -653,12 +760,12 @@ async function getIpUrlCsv(urlCsvs, tls) {
 				// Check if TLS matches and speed is greater than sl
 				const tlsValue = columns[tlsIndex].toUpperCase();
 				const speedValue = parseFloat(columns[speedIndex]);
-
 				if (tlsValue === tls && speedValue > sl) {
 					const ipAddress = columns[ipAddressIndex];
 					const port = columns[portIndex];
 					const dataCenter = columns[dataCenterIndex];
-					newAddressesCsv.push(`${ipAddress}:${port}#${dataCenter}`);
+					// Add suffix to the result
+					newAddressesCsv.push(`${ipAddress}:${port}#${dataCenter}${suffixText}`);
 				}
 			}
 		} catch (error) {
@@ -669,6 +776,7 @@ async function getIpUrlCsv(urlCsvs, tls) {
 	// Wait for all CSVs to be processed
 	await Promise.all(fetchCsvPromises);
 
+	// console.log(`newAddressesCsv: ${newAddressesCsv} \n `);
 	return newAddressesCsv;
 }
 
@@ -682,11 +790,14 @@ const protocolTypeBase64 = 'dmxlc3M=';
  * @param {*} remarks 
  * @returns 
  */
-function getConfigLink(uuid, host, address, port, remarks) {
+function getConfigLink(uuid, host, address, port, remarks, proxyip) {
 	const protocolType = atob(protocolTypeBase64);
 
 	const encryption = 'none';
 	let path = '/?ed=2560';
+	if (proxyip) {
+		path = `/?ed=2560&PROXYIP=${proxyip}`;
+	}
 	const fingerprint = 'randomized';
 	let tls = ['tls', true];
 	if (host.includes('.workers.dev') || host.includes('pages.dev')) {
@@ -763,7 +874,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const htmlHead = `
     <head>
       <title>${projectName}(${fileName})</title>
-      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@AM_CLUB and follow GitHub https://github.com/amclubs ' />
+      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@am_clubs and follow GitHub https://github.com/amclubs ' />
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -810,7 +921,7 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const header = `
 		<p align="left" style="padding-left: 20px; margin-top: 20px;">
 		Telegram交流群 技术大佬~在线交流</br>
-		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
+		<a href="t.me/am_clubs" target="_blank">t.me/am_clubs</a>
 		</br></br>
 		GitHub项目地址 点击Star!Star!Star!</br>
 		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
@@ -942,7 +1053,8 @@ function isSingboxCondition(userAgent, _url) {
  */
 function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 	// Regex to match IPv4 and IPv6
-	const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
+	// const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
+	const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?([^@#]*)@?(.*)?$/;
 
 	// Region codes mapped to corresponding emojis
 	const regionMap = {
@@ -957,18 +1069,28 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 	};
 
 	const responseBody = uniqueIpTxt.map(ipTxt => {
+		// console.log(`splitNodeData---> ipTxt: ${ipTxt} `);
 		let address = ipTxt;
 		let port = "443";
 		let remarks = "";
+		let proxyip = "";
 
 		const match = address.match(regex);
-		if (match) {
+		if (match && !ipTxt.includes('@am_clubs')) {
 			address = match[1];
 			port = match[2] || port;
 			remarks = match[3] || host;
+			proxyip = match[4] || '';
+			// console.log(`splitNodeData--match-> \n address: ${address} \n port: ${port} \n remarks: ${remarks} \n proxyip: ${proxyip}`);
 		} else {
 			let ip, newPort, extra;
 
+			if (ipTxt.includes('@') && !ipTxt.includes('@am_clubs')) {
+				const [addressPart, proxyipPart] = ipTxt.split('@');
+				ipTxt = addressPart;
+				proxyip = proxyipPart;
+				// console.log(`splitNodeData-ipTxt.includes('@')--> ipTxt: ${ipTxt} \n proxyip: ${proxyip} `);
+			}
 			if (ipTxt.includes(':') && ipTxt.includes('#')) {
 				[ip, newPort, extra] = ipTxt.split(/[:#]/);
 			} else if (ipTxt.includes(':')) {
@@ -982,7 +1104,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 			address = ip;
 			port = newPort || port;
 			remarks = extra || host;
-			// console.log(`splitNodeData---> ip: ${ip} \n extra: ${extra} \n port: ${port}`);
+			// console.log(`splitNodeData---> \n address: ${address} \n port: ${port} \n remarks: ${remarks} \n proxyip: ${proxyip}`);
 		}
 
 		// Replace region code with corresponding emoji
@@ -993,7 +1115,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
 			return null; // Skip this iteration
 		}
 
-		const [v2ray, clash] = getConfigLink(uuid, host, address, port, remarks);
+		const [v2ray, clash] = getConfigLink(uuid, host, address, port, remarks, proxyip);
 		return v2ray;
 	}).filter(Boolean).join('\n');
 
@@ -1140,6 +1262,152 @@ async function getCFSum(accountId, accountIndex, email, key, startDate, endDate)
 		return [0, 0];
 	}
 }
+
+// const MY_KV_NAMESPACE = atob('YW1jbHVicw==');
+const MY_KV_UUID_KEY = atob('VVVJRA==');;
+
+async function checkKVNamespaceBinding(env) {
+	if (typeof env.amclubs === 'undefined') {
+		return new Response('Error: amclubs KV_NAMESPACE is not bound.', {
+			status: 400,
+		})
+	}
+}
+
+async function getKVData(env) {
+	const value = await env.amclubs.get(MY_KV_UUID_KEY);
+	return value ? String(value) : '';
+	// return new Response(value || 'Key not found', {
+	// 	status: value ? 200 : 404
+	// });
+}
+
+async function setKVData(request, env) {
+	if (request.method !== 'POST') {
+		return new Response('Use POST method to set values', { status: 405 });
+	}
+
+	const value = await request.text();
+	// console.log(`setKVData----> Received value: ${value} \n`);
+
+	try {
+		await env.amclubs.put(MY_KV_UUID_KEY, value);
+
+		// 读取存入的值，确认是否成功
+		const storedValue = await env.amclubs.get(MY_KV_UUID_KEY);
+		if (storedValue === value) {
+			return new Response(`${MY_KV_UUID_KEY} updated successfully`, { status: 200 });
+		} else {
+			return new Response(`Error: Value verification failed after storage`, { status: 500 });
+		}
+	} catch (error) {
+		return new Response(`Error storing value: ${error.message}`, { status: 500 });
+	}
+}
+
+async function showKVPage(env) {
+	const kvCheckResponse = await checkKVNamespaceBinding(env);
+	if (kvCheckResponse) {
+		return kvCheckResponse;
+	}
+	const value = await getKVData(env);
+	return new Response(
+		`<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8"> 
+        <title>${fileName}</title>
+        <style>
+          html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center; 
+            font-family: Arial, sans-serif;
+          }
+
+          .container {
+            text-align: center; 
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            width: 400px;
+          }
+
+          h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+          }
+
+          textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+          }
+
+          button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+          }
+
+          button:hover {
+            background-color: #45a049;
+          }
+
+          #saveStatus {
+            color: green;
+            margin-top: 10px;
+          }
+        </style>
+        <script>
+          async function fetchData() {
+            const response = await fetch('/${userID}/get');
+            const text = await response.text();
+            document.getElementById('value').value = text;
+          }
+
+          async function saveData() {
+            const value = document.getElementById('value').value;
+            const response = await fetch('/${userID}/set', { method: 'POST', body: value });
+            const responseText = await response.text();
+
+            document.getElementById('saveStatus').innerText = responseText;
+          }
+        </script>
+      </head>
+      <body>
+        <div class="container">
+          <h1>UUID 页面</h1>
+          <label for="key">Key:</label>
+          <input type="text" id="key" value="${MY_KV_UUID_KEY}" readonly />
+          <br/><br/>
+          <label for="value">Value:</label>
+          <textarea id="value">${value || ''}</textarea>
+          <br/><br/>
+          <button onclick="saveData()">Save</button>
+          <div id="saveStatus"></div>
+        </div>
+      </body>
+    </html>`,
+		{
+			headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+			status: 200,
+		}
+	);
+}
+
 
 const API_URL = 'http://ip-api.com/json/';
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
@@ -1840,4 +2108,3 @@ async function nginx() {
 	`
 	return text;
 }
-
