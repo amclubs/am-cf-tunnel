@@ -86,7 +86,7 @@
 ## 四、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
-| UUID             | d0298536-d670-4045-bbb1-ddd5ea68683e（默认） |✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid)                                        |  |
+| UUID            | d0298536-d670-4045-bbb1-ddd5ea68683e（默认） |✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) 如果是Trojan节点的变量是：PASSWORD                                   |  |
 | PROXYIP          | proxyip.amclubs.kozow.com </br>或</br> [https://raw.github.../proxyip.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt)  |❌| 访问CloudFlare的CDN代理节点(支持多PROXYIP, PROXYIP之间使用`,`或 换行 作间隔),支持端口设置默认443 如: proxyip.amclubs.kozow.com:2053 ，支持远程txt或csv文件| [教程](https://youtu.be/pKrlfRRB0gU) |
 | SOCKS5           | user:password@127.0.0.1:1080         |❌| 优先作为访问CFCDN站点的SOCKS5代理                                                   | [教程](https://youtu.be/Bw82BH_ecC4) |
 | DNS_RESOLVER_URL | https://cloudflare-dns.com/dns-query |❌| DNS解析获取作用，小白勿用                                                           |  |
