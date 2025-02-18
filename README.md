@@ -32,6 +32,7 @@
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?base64` Base64订阅格式，适用PassWall,SSR+等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?clash` Clash订阅格式，适用OpenClash等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?singbox` singbox订阅格式，适用singbox等。
+   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?sub&IP_URL=https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipUrl.txt` 自动义变量等参数。
 5. 修改默认UUID变量，使用KV存储桶(可选项，推荐修改，防止别人用你节点)： 
    - 访问 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e/ui` 即可进入修改UUID页面 
    - 在UUID页面UUID项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `Save`。
@@ -60,6 +61,7 @@
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?base64` Base64订阅格式，适用PassWall,SSR+等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?clash` Clash订阅格式，适用OpenClash等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?singbox` singbox订阅格式，适用singbox等。
+   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?sub&IP_URL=https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipUrl.txt` 自动义变量等参数。
 5. 修改默认UUID变量，使用KV存储桶(可选项，推荐修改，防止别人用你节点)： 
    - 访问 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e/ui` 即可进入修改UUID页面 
    - 在UUID页面UUID项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `Save`。
@@ -89,6 +91,7 @@
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?base64` Base64订阅格式，适用PassWall,SSR+等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?clash` Clash订阅格式，适用OpenClash等。
    - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?singbox` singbox订阅格式，适用singbox等。
+   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?sub&IP_URL=https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipUrl.txt` 自动义变量等参数。
 5. 修改默认UUID变量，使用KV存储桶(可选项，推荐修改，防止别人用你节点)： 
    - 访问 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e/ui` 即可进入修改UUID页面 
    - 在UUID页面UUID项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `Save`。
