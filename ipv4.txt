@@ -1,3 +1,4 @@
+127.0.0.1:1234#cfnat
 198.62.62.156:443#US
 162.159.129.11:2053#US
 162.159.129.67:8443#US
@@ -92,4 +93,5 @@ pixiv.net
 comicabc.com
 c.xf.free.hr
 yecaoyun.com
+
 
