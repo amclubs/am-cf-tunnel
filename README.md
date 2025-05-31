@@ -1,5 +1,5 @@
 # [am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
-这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS节点,实现订阅连接可以一键订阅节点。
+这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS节点,实现订阅连接可以一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI)
 
 #
 ▶️ **新人[YouTube](https://youtube.com/@am_clubs?sub_confirmation=1)** 需要您的支持，请务必帮我**点赞**、**关注**、**打开小铃铛**，***十分感谢！！！*** ✅
@@ -11,7 +11,7 @@
 - [Error 1101 和 522 报错解决方案教程](https://youtu.be/4fcyJjstFdg) | [优选IP和优选反代IP视频教程](https://youtu.be/pKrlfRRB0gU) | [解决常见订阅测试-1问题教程](https://youtu.be/kYQxV1G-ePw)
 - [VLESS免费节点部署教程](https://youtu.be/dPH63nITA0M) | [Trojan免费节点部署教程](https://youtu.be/uh27CVVi6HA) | [从入门到精通免费部署教程](https://youtu.be/ag12Rpc9KP4) | [聚合节点订阅教程](https://youtu.be/YBO2hf96150)
 - [GitHub私有库存储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储优选IP文件教程](https://youtu.be/dzxezRV1v-o) [获取免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70)
-- [🔥amclubs-cfnat自动优先IP视频教程(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [🔥Linux & openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [🔥Mac版](https://youtu.be/gf6gncc2yEE) | [🔥安卓(Android)手机版](https://youtu.be/7yamDM38MFw) 
+- [🔥amclubs-cfnat自动优先IP视频教程(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [🔥Linux & openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [🔥Mac版](https://youtu.be/gf6gncc2yEE) | [🔥安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [🔥docker版](https://youtu.be/gRnNwoeUQKU) 
 
 ### CF端口类型:
 ~~~
@@ -109,7 +109,7 @@ HTTPS：443，2053，2083，2087，2096，8443
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | UUID            | d0298536-d670-4045-bbb1-ddd5ea68683e（默认） |✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) 如果是Trojan节点的变量是：PASSWORD     | |
-| PROT_TYPE        | 输认空          |❌|      默认空,就是生成vless和trojan节点，vless(只生成vless节点)，trojan(只生成trojan节点)           |  |
+| PROT_TYPE        | 输认空          |❌|      默认空,就是生成vless和trojan节点，vless(只生成vless节点)，trojan(只生成trojan节点)           | [教程](https://www.youtube.com/watch?v=emEBm8Gw2wI&t=922s) |
 | IP_URL           | [https://raw.github.../ipUrl.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipUrl.txt)           |❌| （推荐）优选(ipv4、ipv6、域名、API)地址(支持多个之间`,`或 换行 作间隔)，支持文件连接后里带PROXYIP参数，可以实现不同区域优先IP使用不同的PROXYIP固定区域，解决IP乱跳问题  | [教程](https://www.youtube.com/watch?v=4fcyJjstFdg&t=349s)|
 | IP_URL_TXT       | [https://raw.github.../ipv4.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.txt) |❌| （不推荐）优选ipv4、ipv6、域名、API地址(支持多个之间`,`或 换行 作间隔) |[教程](https://youtu.be/dzxezRV1v-o) [教程](https://youtu.be/vX3U3FuuTT8)|
 | IP_URL_CSV       | [https://raw.github.../ipv4.csv](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.csv) |❌| （不推荐）优选ipv4/6的IP测速结果(支持多元素, 元素之间使用`,`作间隔) |[教程](https://youtu.be/vX3U3FuuTT8)|
