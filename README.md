@@ -1,4 +1,4 @@
-# [am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
+# 🚀[am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
 这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS节点,实现订阅连接可以一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI)
 
 #
@@ -7,13 +7,13 @@
 </br>✅**解锁更多技能** [加入TG群【am_clubs】](https://t.me/am_clubs)、[YouTube频道【@am_clubs】](https://youtube.com/@am_clubs?sub_confirmation=1)、[【博客(国内)】](https://amclubss.com)、[【博客(国际)】](https://amclubs.blogspot.com) 
 </br>✅点击观看教程[CLoudflare免费节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbrY0Pk8gm3T7m8MZ-InquF) | [VPS搭建节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaVlrHP9Du61CaEThYCQaiY) | [获取免费域名](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [免费VPN](https://www.youtube.com/playlist?list=PLGVQi7TjHKXY7V2JF-ShRSVwGANlZULdk) | [IPTV源](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbkozDYVsDRJhbnNaEOC76w) | [Mac和Win工具](https://www.youtube.com/playlist?list=PLGVQi7TjHKXYBWu65yP8E08HxAu9LbCWm) | [AI分享](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaodkM-mS-2Nwggwc5wRjqY)
 
-# 推荐视频教程
+# 🎬推荐视频教程
 - [Error 1101 和 522 报错解决方案教程](https://youtu.be/4fcyJjstFdg) | [优选IP和优选反代IP视频教程](https://youtu.be/pKrlfRRB0gU) | [解决常见订阅测试-1问题教程](https://youtu.be/kYQxV1G-ePw)
 - [VLESS免费节点部署教程](https://youtu.be/dPH63nITA0M) | [Trojan免费节点部署教程](https://youtu.be/uh27CVVi6HA) | [从入门到精通免费部署教程](https://youtu.be/ag12Rpc9KP4) | [聚合节点订阅教程](https://youtu.be/YBO2hf96150)
 - [GitHub私有库存储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储优选IP文件教程](https://youtu.be/dzxezRV1v-o) [获取免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70)
 - [🔥amclubs-cfnat自动优先IP视频教程(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [🔥Linux & openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [🔥Mac版](https://youtu.be/gf6gncc2yEE) | [🔥安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [🔥docker版](https://youtu.be/gRnNwoeUQKU) 
 
-## 一、需要准备的前提资料
+## 📝一、需要准备的前提资料
 <details>
 <summary>点击展开/收起</summary>
 
@@ -32,7 +32,7 @@
 
 </details>
 
-## 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
+## ⚙️ 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -59,7 +59,7 @@
    
 </details>
 
-## 三、Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
+## 📦三、Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
  <details>
 <summary>点击展开/收起</summary>
     
@@ -88,7 +88,7 @@
 
 </details>
 
-## 四、Pages GitHub 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
+## 🧰四、Pages GitHub 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
 <details>
 <summary>点击展开/收起</summary>
    
@@ -118,7 +118,7 @@
 
 </details>
 
-## 五、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
+## 🔧五、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | UUID            | d0298536-d670-4045-bbb1-ddd5ea68683e（默认） |✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) 如果是Trojan节点的变量是：PASSWORD     | |
@@ -144,7 +144,7 @@
 | TG_ID           | 6946912345                            |❌ | 接收TG通知的账户数字ID                                       ||
 | HOST_REAMRK           | true/false                            |❌ | 默认false,是否用订阅域名做节点别名                                      ||
 
-## 六、已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
+## 🛠六、已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -165,12 +165,16 @@
   
 </details>
 	  
-# 感谢
+# 🙏感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
+
+# 🌟推荐
+**【流量光】** 中转+专线高速机场 **9.9元300G 14.9元500G 1倍率**✅畅爽晚高峰 解锁ChatGPT、全流媒体(送小火箭)
+🌐官网：[https://llgjc1.com](https://llgjc1.com/#/register?code=bIUDEPTu)
 
 # 
 <center>
-<details><summary><strong> [点击展开] 赞赏支持 ~🧧</strong></summary>
+<details><summary><strong> ☕ [点击展开] 赞赏支持 ~🧧</strong></summary>
 *我非常感谢您的赞赏和支持，它们将极大地激励我继续创新，持续产生有价值的工作。*
 
 - **USDT-TRC20:** `TWTxUyay6QJN3K4fs4kvJTT8Zfa2mWTwDD`
@@ -184,7 +188,7 @@
 </center>
 
  #
- 免责声明:
+ ⚠️免责声明:
  - 1、该项目设计和开发仅供学习、研究和安全测试目的。请于下载后 24 小时内删除, 不得用作任何商业用途, 文字、数据及图片均有所属版权, 如转载须注明来源。
  - 2、使用本程序必循遵守部署服务器所在地区的法律、所在国家和用户所在国家的法律法规。对任何人或团体使用该项目时产生的任何后果由使用者承担。
  - 3、作者不对使用该项目可能引起的任何直接或间接损害负责。作者保留随时更新免责声明的权利，且不另行通知。
