@@ -13,13 +13,26 @@
 - [GitHub私有库存储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储优选IP文件教程](https://youtu.be/dzxezRV1v-o) [获取免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70)
 - [🔥amclubs-cfnat自动优先IP视频教程(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [🔥Linux & openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [🔥Mac版](https://youtu.be/gf6gncc2yEE) | [🔥安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [🔥docker版](https://youtu.be/gRnNwoeUQKU) 
 
-### CF端口类型:
-~~~
-HTTP：80，8080，8880，2052，2082，2086，2095
-HTTPS：443，2053，2083，2087，2096，8443
-~~~
+## 一、需要准备的前提资料
+<details>
+<summary>点击展开/收起</summary>
 
-## 一、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
+### 1、注册免费**cloudflare**帐号(邮箱就可以免费注册)
+- 注册地址：https://cloudflare.com <a href="https://youtu.be/ITeuSbHVQ2E">[点击观看视频教程]</a>
+
+### 2、注册**免费域名** [点击观看所有免费域名视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+
+### 3、**订阅工具** [点击观看使用视频教程](https://youtu.be/xGOL57cmvaw)
+👉 [点击加入TG群 数字套利｜交流群](https://t.me/AM_CLUBS)发送关键字 **工具** 获取下载
+
+### 4、Cloudflare标准 **端口** 知识  [点击观看优选IP视频教程](https://youtu.be/pKrlfRRB0gU)
+- 80系端口(HTTP)：80，8080，8880，2052，2082，2086，2095
+- 443系端口(HTTPS)：443，2053，2083，2087，2096，8443
+- [IP落地测试工具地址](https://ip.sb/) 
+
+</details>
+
+## 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -46,7 +59,7 @@ HTTPS：443，2053，2083，2087，2096，8443
    
 </details>
 
-## 二、Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
+## 三、Pages 上传 部署方法 **最佳推荐!!!** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
  <details>
 <summary>点击展开/收起</summary>
     
@@ -75,7 +88,7 @@ HTTPS：443，2053，2083，2087，2096，8443
 
 </details>
 
-## 三、Pages GitHub 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
+## 四、Pages GitHub 部署方法 [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
 <details>
 <summary>点击展开/收起</summary>
    
@@ -105,7 +118,7 @@ HTTPS：443，2053，2083，2087，2096，8443
 
 </details>
 
-## 四、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
+## 五、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | UUID            | d0298536-d670-4045-bbb1-ddd5ea68683e（默认） |✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) 如果是Trojan节点的变量是：PASSWORD     | |
@@ -131,7 +144,10 @@ HTTPS：443，2053，2083，2087，2096，8443
 | TG_ID           | 6946912345                            |❌ | 接收TG通知的账户数字ID                                       ||
 | HOST_REAMRK           | true/false                            |❌ | 默认false,是否用订阅域名做节点别名                                      ||
 
-## 五、已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
+## 六、已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
+<details>
+<summary>点击展开/收起</summary>
+
 - Mac（苹果电脑）
    - [v2rayU](https://github.com/yanue/V2rayU/releases) | [clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev/releases) | [Quantumult X](https://apps.apple.com/us/app/quantumult-x/id1443988620) |  [小火箭](https://apps.apple.com/us/app/shadowrocket/id932747118) | [surge](https://apps.apple.com/us/app/surge-5/id1442620678) | [karing](https://karing.app/download) | [sing-box](https://github.com/SagerNet/sing-box/releases)  | [Clash Nyanpasu](https://github.com/keiko233/clash-nyanpasu/releases) | [openclash](https://github.com/vernesong/OpenClash/releases) | [Hiddify](https://github.com/hiddify/hiddify-next/releases)
 
@@ -147,6 +163,8 @@ HTTPS：443，2053，2083，2087，2096，8443
 - 软路由
    - [openclash(clash.meta)](https://github.com/vernesong/OpenClash/releases) 
   
+</details>
+	  
 # 感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
 
