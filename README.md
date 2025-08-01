@@ -129,6 +129,7 @@
 | IP_LOCAL         | `icook.hk:2053#官方优选域名`           |❌| （不推荐）本地优选域名/优选IP(支持多元素之间`,`或 换行 作间隔)                                 | |
 | NAT64           | true/false                           |❌| 默认false,是否开启nat做PROXYIP(反代IP)，开启后优选使用NAT64再用PROXYIP       | |
 | NAT64_DOM_URL_TXT  | [https://raw.github.../nat64Domain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/nat64Domain.txt)     |❌| 指定相关域名网站走NAT64      | |
+| NAT64_PREFIX  | 2a01:4f8:c2c:123f:64::    |❌| 指定自定NAT64前缀,不填走CF默认的 (https://amclubss.com/cf/)     | |
 | PROXYIP_DOM_URL_TXT | [https://raw.github.../proxyDomain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyDomain.txt) |❌| 指定相关域名网站走反代IP(PROXYIP),如果NAT64也设置相同域名,优选级是走PROXYIP      | |
 | PROXYIP          | proxyip.amclubs.kozow.com </br>或</br> [https://raw.github.../proxyip.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt)  |❌| 访问CloudFlare的CDN代理节点(支持多PROXYIP, PROXYIP之间使用`,`或 换行 作间隔),支持端口设置默认443 如: proxyip.amclubs.kozow.com:2053 ，支持远程txt或csv文件| [教程](https://youtu.be/pKrlfRRB0gU) |
 | SOCKS5           | user:password@127.0.0.1:1080         |❌| 优先作为访问CFCDN站点的SOCKS5代理                                                   | [教程](https://youtu.be/Bw82BH_ecC4) |
