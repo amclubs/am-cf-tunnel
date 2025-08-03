@@ -50,7 +50,6 @@ julio.ns.cloudflare.com
 kyree.ns.cloudflare.com
 lewis.ns.cloudflare.com
 moura.ns.cloudflare.com
-nikon.ns.cloudflare.com
 otto.ns.cloudflare.com
 pranab.ns.cloudflare.com
 rustam.ns.cloudflare.com
@@ -61,7 +60,6 @@ wilson.ns.cloudflare.com
 162.159.133.85
 172.67.106.26
 172.67.110.232
-172.67.95.24
 172.64.201.25
 www.4chan.org
 www.okcupid.com
