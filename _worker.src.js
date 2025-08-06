@@ -78,7 +78,7 @@ let fakeHostName;
 let subProtocol = 'https';
 let subConverter = atob('dXJsLnYxLm1r'); // Subscription conversion backend using Sheep's function
 let subConfig = atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvQUNMNFNTUi9tYWluL0NsYXNoL2NvbmZpZy9BQ0w0U1NSX09ubGluZV9GdWxsX011bHRpTW9kZS5pbmk='); // Subscription profile
-let fileName = atob('5pWw5a2X5aWX5Yip'); 
+let fileName = atob('5pWw5a2X5aWX5Yip');
 let isBase64 = true;
 
 let botToken = '';
@@ -97,9 +97,14 @@ let nat64Domain = [
 	// 'twitch.tv'
 ];
 let nat64 = false;
+let nat64Prefix;
+let nat64Prefixs = [
+	'2602:fc59:b0:64::'
+];
+
 let hostRemark = false;
 
-const ENABLE_LOG = true; 
+const ENABLE_LOG = true;
 
 if (!isValidUUID(userID)) {
 	throw new Error('uuid is invalid');
@@ -138,6 +143,7 @@ export default {
 				ADDRESSESAPI,
 				NAT64,
 				NAT64_DOM_URL_TXT,
+				NAT64_PREFIX,
 				HOST_REAMRK,
 			} = env;
 			const kvCheckResponse = await checkKVNamespaceBinding(env);
@@ -249,6 +255,23 @@ export default {
 				let proxyDomainAll = await getIpUrlTxtAndCsv(noTLS, proxyDomainTxt, null);
 				proxyDomain = [...new Set([...proxyDomainAll.txt])];
 			}
+			nat64Prefix = url.searchParams.get('NAT64_PREFIX') || NAT64_PREFIX;
+			if (NAT64_PREFIX) {
+				if (httpPattern.test(NAT64_PREFIX)) {
+					let proxyIpTxt = await addIpText(NAT64_PREFIX);
+					let ipUrlTxtAndCsv;
+					if (NAT64_PREFIX.endsWith('.csv')) {
+						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, proxyIpTxt);
+					} else {
+						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxt, null);
+					}
+					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
+					nat64Prefix = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
+				} else {
+					nat64Prefixs = await addIpText(NAT64_PREFIX);
+					nat64Prefix = nat64Prefixs[Math.floor(Math.random() * nat64Prefixs.length)];
+				}
+			} 
 
 			// Unified protocol for handling subconverters
 			const [subProtocol, subConverterWithoutProtocol] = (subConverter.startsWith("http://") || subConverter.startsWith("https://"))
@@ -410,11 +433,11 @@ async function resolveProxyIP(PROXYIP, noTLS, proxyIpTxt, fallbackIPs = []) {
 /** ---------------------Tools------------------------------ */
 
 function log(...args) {
-  if (ENABLE_LOG) console.log(...args);
+	if (ENABLE_LOG) console.log(...args);
 }
 
 function error(...args) {
-  if (ENABLE_LOG) console.error(...args);
+	if (ENABLE_LOG) console.error(...args);
 }
 
 export async function hashHex_f(string) {
@@ -1124,86 +1147,86 @@ function getRandomItems(arr, count) {
 })();
 
 async function resolveDomainToNAT64IPv6(domain) {
-  try {
-    log(`[DNS] Starting domain resolution: ${domain}`);
+	try {
+		log(`[DNS] Starting domain resolution: ${domain}`);
 
-    const response = await fetch(`${dnsResolver}?name=${domain}&type=A`, {
-      headers: {
-        Accept: "application/dns-json",
-      },
-    });
+		const response = await fetch(`${dnsResolver}?name=${domain}&type=A`, {
+			headers: {
+				Accept: "application/dns-json",
+			},
+		});
 
-    if (!response.ok) {
-      throw new Error(`DNS request failed with status code: ${response.status}`);
-    }
+		if (!response.ok) {
+			throw new Error(`DNS request failed with status code: ${response.status}`);
+		}
 
-    const result = await response.json();
-    log(`[DNS] Query result: ${JSON.stringify(result, null, 2)}`);
+		const result = await response.json();
+		log(`[DNS] Query result: ${JSON.stringify(result, null, 2)}`);
 
-    const aRecord = result?.Answer?.find(record => record.type === 1 && record.data);
-    if (!aRecord) {
-      throw new Error("No valid A record found");
-    }
+		const aRecord = result?.Answer?.find(record => record.type === 1 && record.data);
+		if (!aRecord) {
+			throw new Error("No valid A record found");
+		}
 
-    const ipv4 = aRecord.data;
-    log(`[DNS] Found IPv4 address: ${ipv4}`);
+		const ipv4 = aRecord.data;
+		log(`[DNS] Found IPv4 address: ${ipv4}`);
 
-    const ipv6 = convertIPv4ToNAT64IPv6(ipv4);
-    log(`[NAT64] Converted IPv6 address: ${ipv6}`);
+		const ipv6 = convertIPv4ToNAT64IPv6(ipv4);
+		log(`[NAT64] Converted IPv6 address: ${ipv6}`);
 
-    return ipv6;
+		return ipv6;
 
-  } catch (err) {
-    error(`[Error] Failed to get NAT64 address: ${err.message}`);
-    throw new Error(`DNS resolution failed: ${err.message}`);
-  }
+	} catch (err) {
+		error(`[Error] Failed to get NAT64 address: ${err.message}`);
+		throw new Error(`DNS resolution failed: ${err.message}`);
+	}
 }
 
 function convertIPv4ToNAT64IPv6(ipv4Address, options = {}) {
-  const {
-    prefixType = 'custom', // Options: 'standard', 'custom', 'private', 'random', 'manual'
-    withBrackets = true,
-    prefix = '' // Used only when prefixType is 'manual'
-  } = options;
+	const {
+		prefixType = nat64Prefix ? 'manual' : 'custom', // Options: 'standard', 'custom', 'private', 'random', 'manual'
+		prefix = nat64Prefix || '', // Used only when prefixType is 'manual'
+		withBrackets = true
+	} = options;
 
-  // Validate and parse IPv4 address
-  const parts = ipv4Address.trim().split('.');
-  if (parts.length !== 4) throw new Error('Invalid IPv4 address');
-  const hexParts = parts.map(part => {
-    const num = Number(part);
-    if (!/^\d+$/.test(part) || isNaN(num) || num < 0 || num > 255) {
-      throw new Error(`Invalid IPv4 segment: ${part}`);
-    }
-    return num.toString(16).padStart(2, '0');
-  });
+	// Validate and parse IPv4 address
+	const parts = ipv4Address.trim().split('.');
+	if (parts.length !== 4) throw new Error('Invalid IPv4 address');
+	const hexParts = parts.map(part => {
+		const num = Number(part);
+		if (!/^\d+$/.test(part) || isNaN(num) || num < 0 || num > 255) {
+			throw new Error(`Invalid IPv4 segment: ${part}`);
+		}
+		return num.toString(16).padStart(2, '0');
+	});
 
-  // Built-in NAT64 prefixes
-  const predefinedPrefixes = {
-    standard: ['64:ff9b::'],
-    custom: ['2001:67c:2960:6464::'],
-    private: ['fd00:abcd::', 'fd00:1234::'],
-    random: ['64:ff9b::', '2001:67c:2960:6464::', 'fd00:abcd::']
-  };
+	// Built-in NAT64 prefixes
+	const predefinedPrefixes = {
+		standard: ['64:ff9b::'],
+		custom: ['2602:fc59:b0:64::'],
+		private: ['fd00:abcd::', 'fd00:1234::'],
+		random: ['64:ff9b::', '2001:67c:2960:6464::', 'fd00:abcd::']
+	};
 
-  // Select prefix
-  let selectedPrefix;
-  if (prefixType === 'manual') {
-    if (!prefix || typeof prefix !== 'string' || !prefix.includes('::')) {
-      throw new Error('Invalid manual prefix; must be a valid IPv6 prefix');
-    }
-    selectedPrefix = prefix;
-  } else if (predefinedPrefixes[prefixType]) {
-    const prefixList = predefinedPrefixes[prefixType];
-    selectedPrefix = prefixList[Math.floor(Math.random() * prefixList.length)];
-  } else {
-    throw new Error(`Unsupported prefixType: ${prefixType}`);
-  }
+	// Select prefix
+	let selectedPrefix;
+	if (prefixType === 'manual') {
+		if (!prefix || typeof prefix !== 'string' || !prefix.includes('::')) {
+			throw new Error('Invalid manual prefix; must be a valid IPv6 prefix');
+		}
+		selectedPrefix = prefix;
+	} else if (predefinedPrefixes[prefixType]) {
+		const prefixList = predefinedPrefixes[prefixType];
+		selectedPrefix = prefixList[Math.floor(Math.random() * prefixList.length)];
+	} else {
+		throw new Error(`Unsupported prefixType: ${prefixType}`);
+	}
 
-  // Construct IPv6 suffix
-  const ipv6Tail = `${hexParts[0]}${hexParts[1]}:${hexParts[2]}${hexParts[3]}`.toLowerCase();
-  const fullIPv6 = `${selectedPrefix}${ipv6Tail}`;
+	// Construct IPv6 suffix
+	const ipv6Tail = `${hexParts[0]}${hexParts[1]}:${hexParts[2]}${hexParts[3]}`.toLowerCase();
+	const fullIPv6 = `${selectedPrefix}${ipv6Tail}`;
 
-  return withBrackets ? `[${fullIPv6}]` : fullIPv6;
+	return withBrackets ? `[${fullIPv6}]` : fullIPv6;
 }
 
 /**
@@ -1218,33 +1241,33 @@ function convertIPv4ToNAT64IPv6(ipv4Address, options = {}) {
  * @returns {boolean} Whether the hostname matches the pattern
  */
 function matchesDomainPattern(hostname, pattern) {
-  if (!hostname || !pattern) return false;
+	if (!hostname || !pattern) return false;
 
-  // Normalize to lowercase; domain names are case-insensitive
-  hostname = hostname.toLowerCase();
-  pattern = pattern.toLowerCase();
+	// Normalize to lowercase; domain names are case-insensitive
+	hostname = hostname.toLowerCase();
+	pattern = pattern.toLowerCase();
 
-  // Exclude IP addresses (both IPv4 and IPv6)
-  // IPv4: consists of digits and dots; IPv6: contains colons and may be wrapped in brackets
-  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  const ipv6Regex = /^\[?([a-f0-9:]+)\]?$/i;
-  if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
-    return false;
-  }
+	// Exclude IP addresses (both IPv4 and IPv6)
+	// IPv4: consists of digits and dots; IPv6: contains colons and may be wrapped in brackets
+	const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+	const ipv6Regex = /^\[?([a-f0-9:]+)\]?$/i;
+	if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
+		return false;
+	}
 
-  const hostParts = hostname.split('.');
-  const patternParts = pattern.split('.');
+	const hostParts = hostname.split('.');
+	const patternParts = pattern.split('.');
 
-  if (hostParts.length < patternParts.length) return false;
+	if (hostParts.length < patternParts.length) return false;
 
-  // Match segments from right to left; all corresponding segments must match
-  for (let i = 1; i <= patternParts.length; i++) {
-    if (hostParts[hostParts.length - i] !== patternParts[patternParts.length - i]) {
-      return false;
-    }
-  }
+	// Match segments from right to left; all corresponding segments must match
+	for (let i = 1; i <= patternParts.length; i++) {
+		if (hostParts[hostParts.length - i] !== patternParts[patternParts.length - i]) {
+			return false;
+		}
+	}
 
-  return true;
+	return true;
 }
 
 /**
@@ -1261,17 +1284,17 @@ async function resolveNAT64IfNeeded(address, addressRemote, port, nat64, forceNA
 	log(`resolveNAT64IfNeeded: address = ${address}, addressRemote = ${addressRemote}, port = ${port}, nat64 = ${nat64}`);
 	log(`resolveNAT64IfNeeded: proxyDomain = ${proxyDomain}, nat64Domain = ${nat64Domain}`);
 
-	if(proxyDomain.some(domain => matchesDomainPattern(address, domain))){
+	if (proxyDomain.some(domain => matchesDomainPattern(address, domain))) {
 		log(`resolveNAT64IfNeeded: proxyIP = ${proxyIP}`);
 		return proxyIP;
 	}
 
 	const shouldUseNAT64 = nat64 && (forceNAT64 || nat64Domain.some(domain => matchesDomainPattern(address, domain)));
 	if (shouldUseNAT64) {
-    	const nat64IP = await resolveDomainToNAT64IPv6(addressRemote);
-    	log(`resolveNAT64IfNeeded Using NAT64 IPv6: nat64IP = ${nat64IP}`);
-    	return nat64IP;
- 	 }
+		const nat64IP = await resolveDomainToNAT64IPv6(addressRemote);
+		log(`resolveNAT64IfNeeded Using NAT64 IPv6: nat64IP = ${nat64IP}`);
+		return nat64IP;
+	}
 
 	return address;
 }
@@ -1862,7 +1885,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat6
 		if (match && !ipTxt.includes('@am_clubs')) {
 			address = match[1];
 			port = match[2] || port;
-			remarks = hostRemark?host:(match[3] || address || host);
+			remarks = hostRemark ? host : (match[3] || address || host);
 			proxyip = match[4] || '';
 			// console.log(`splitNodeData--match-> \n address: ${address} \n port: ${port} \n remarks: ${remarks} \n proxyip: ${proxyip}`);
 		} else {
@@ -1886,7 +1909,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat6
 
 			address = ip;
 			port = newPort || port;
-			remarks = hostRemark?host:(extra || address || host);
+			remarks = hostRemark ? host : (extra || address || host);
 			// console.log(`splitNodeData---> \n address: ${address} \n port: ${port} \n remarks: ${remarks} \n proxyip: ${proxyip}`);
 		}
 
@@ -2422,7 +2445,7 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
 	 */
 	async function connectAndWrite(address, port, socks = false) {
 		//
-		address = await resolveNAT64IfNeeded(address,addressRemote,port,nat64);
+		address = await resolveNAT64IfNeeded(address, addressRemote, port, nat64);
 
 		/** @type {import("@cloudflare/workers-types").Socket} */
 		const tcpSocket = socks ? await socks5Connect(addressType, address, port, log)
@@ -2444,12 +2467,12 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
 	 */
 	async function retry() {
 		//
-		const resolvedTarget = await resolveNAT64IfNeeded(proxyIP,addressRemote,portRemote,nat64,true);
+		const resolvedTarget = await resolveNAT64IfNeeded(proxyIP, addressRemote, portRemote, nat64, true);
 		const finalTargetHost = resolvedTarget || addressRemote;
 		const finalTargetPort = proxyPort || portRemote;
 
-		const tcpSocket = socks5Enable 
-			? await connectAndWrite(addressRemote, portRemote, true) 
+		const tcpSocket = socks5Enable
+			? await connectAndWrite(addressRemote, portRemote, true)
 			: await connectAndWrite(finalTargetHost, finalTargetPort);
 
 		log(`retry-${socks5Enable} connected to ${addressRemote}:${portRemote}`);
