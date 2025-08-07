@@ -128,9 +128,9 @@
 | IP_URL_CSV       | [https://raw.github.../ipv4.csv](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.csv) |❌| （不推荐）优选ipv4/6的IP测速结果(支持多元素, 元素之间使用`,`作间隔) |[视频教程](https://youtu.be/vX3U3FuuTT8)|
 | IP_LOCAL         | `icook.hk:2053#官方优选域名`           |❌| （不推荐）本地优选域名/优选IP(支持多元素之间`,`或 换行 作间隔)                                 | |
 | NAT64           | true/false                           |❌| 默认false,是否开启nat做PROXYIP(反代IP)，开启后优选使用NAT64再用PROXYIP       | [视频教程](https://www.youtube.com/watch?v=nx80sGpVoBM&t=533s) |
-| NAT64_DOM_URL_TXT  | [https://raw.github.../nat64Domain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/nat64Domain.txt)     |❌| 指定相关域名网站走NAT64      | |
-| NAT64_PREFIX  | 2a01:4f8:c2c:123f:64::  </br>或</br> [https://raw.github.../nat64Prefix.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/nat64Prefix.txt)    |❌| 指定自定NAT64前缀,不填走CF默认的 (https://amclubss.com/cf/)     | |
-| PROXYIP_DOM_URL_TXT | [https://raw.github.../proxyDomain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyDomain.txt) |❌| 指定相关域名网站走反代IP(PROXYIP),如果NAT64也设置相同域名,优选级是走PROXYIP      | |
+| NAT64_DOM_URL_TXT  | [https://raw.github.../nat64Domain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/nat64Domain.txt)     |❌| 指定相关域名网站走NAT64      | [视频教程](https://www.youtube.com/watch?v=nx80sGpVoBM&t=533s)|
+| NAT64_PREFIX  | 2a01:4f8:c2c:123f:64::  </br>或</br> [https://raw.github.../nat64Prefix.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/nat64Prefix.txt)    |❌| 指定自定NAT64前缀,不填走CF默认的 (https://amclubss.com/cf/)     | [视频教程](https://www.youtube.com/watch?v=nx80sGpVoBM&t=533s)|
+| PROXYIP_DOM_URL_TXT | [https://raw.github.../proxyDomain.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyDomain.txt) |❌| 指定相关域名网站走反代IP(PROXYIP),如果NAT64也设置相同域名,优选级是走PROXYIP      | [视频教程](https://www.youtube.com/watch?v=nx80sGpVoBM&t=533s)|
 | PROXYIP          | proxyip.amclubs.kozow.com </br>或</br> [https://raw.github.../proxyip.txt](https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt)  |❌| 访问CloudFlare的CDN代理节点(支持多PROXYIP, PROXYIP之间使用`,`或 换行 作间隔),支持端口设置默认443 如: proxyip.amclubs.kozow.com:2053 ，支持远程txt或csv文件| [视频教程](https://youtu.be/pKrlfRRB0gU) |
 | SOCKS5           | user:password@127.0.0.1:1080         |❌| 优先作为访问CFCDN站点的SOCKS5代理                                                   | [视频教程](https://youtu.be/Bw82BH_ecC4) |
 | DNS_RESOLVER_URL | https://cloudflare-dns.com/dns-query |❌| DNS解析获取作用，小白勿用                                                           |  |
