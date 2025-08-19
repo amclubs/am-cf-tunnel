@@ -235,7 +235,7 @@ export default {
 			fileName = url.searchParams.get('SUB_NAME') || SUB_NAME || fileName;
 			botToken = url.searchParams.get('TG_TOKEN') || TG_TOKEN || botToken;
 			chatID = url.searchParams.get('TG_ID') || TG_ID || chatID;
-			let protType = url.searchParams.get('PROT_TYPE');
+			let protType = url.searchParams.get('PROT_TYPE') || atob(atob(protTypeBase64));
 			if (protType) {
 				protType = protType.toLowerCase();
 			}
@@ -271,7 +271,7 @@ export default {
 					nat64Prefixs = await addIpText(NAT64_PREFIX);
 					nat64Prefix = nat64Prefixs[Math.floor(Math.random() * nat64Prefixs.length)];
 				}
-			} 
+			}
 
 			// Unified protocol for handling subconverters
 			const [subProtocol, subConverterWithoutProtocol] = (subConverter.startsWith("http://") || subConverter.startsWith("https://"))
@@ -1324,7 +1324,8 @@ async function getchannelConfig(userID, host, userAgent, _url, protType, nat64, 
 		if (!protType) {
 			protType = atob(atob(protTypeBase64));
 		}
-		const [v2ray, clash] = getConfigLink(userID, host, host, port, host, protType, nat64);
+
+		const [v2ray, clash] = getConfigLink(userID, host, host, port, host, proxyIP, protType, nat64);
 		return getHtmlResponse(socks5Enable, userID, host, v2ray, clash);
 	}
 
@@ -1801,7 +1802,7 @@ async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID,
 		const responseBody2 = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, nat64, hostRemark);
 		responseBody = [responseBody1, responseBody2].join('\n');
 	} else {
-		responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, nat64, hostRemark);
+		responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, atob(atob(protTypeBase64)), nat64, hostRemark);
 		responseBody = [responseBody].join('\n');
 	}
 	protType = atob(atob(protTypeBase64));
