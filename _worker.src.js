@@ -235,7 +235,7 @@ export default {
 			fileName = url.searchParams.get('SUB_NAME') || SUB_NAME || fileName;
 			botToken = url.searchParams.get('TG_TOKEN') || TG_TOKEN || botToken;
 			chatID = url.searchParams.get('TG_ID') || TG_ID || chatID;
-			let protType = url.searchParams.get('PROT_TYPE') || atob(atob(protTypeBase64));
+			let protType = url.searchParams.get('PROT_TYPE');
 			if (protType) {
 				protType = protType.toLowerCase();
 			}
