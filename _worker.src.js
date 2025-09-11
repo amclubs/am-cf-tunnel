@@ -92,13 +92,12 @@ const protTypeBase64 = 'ZG14bGMzTT0=';
 const protTypeBase64Tro = 'ZEhKdmFtRnU=';
 
 let dnsResolver = atob('aHR0cHM6Ly8xLjEuMS4xL2Rucy1xdWVyeQ==');
-let nat64Domain = [
-	// 'chatgpt.com',
-	// 'twitch.tv'
+let ipv6to4Domain = [
+
 ];
-let nat64 = false;
-let nat64Prefix;
-let nat64Prefixs = [
+let ipv6to4 = false;
+let ipv6to4Prefix;
+let ipv6to4Prefixs = [
 	'2602:fc59:b0:64::'
 ];
 
@@ -242,12 +241,12 @@ export default {
 			randomNum = url.searchParams.get('RANDOW_NUM') || randomNum;
 			hostRemark = url.searchParams.get('HOST_REAMRK') || HOST_REAMRK || hostRemark;
 
-			nat64 = url.searchParams.get('NAT64') || NAT64 || nat64;
+			ipv6to4 = url.searchParams.get('NAT64') || NAT64 || ipv6to4;
 			NAT64_DOM_URL_TXT = url.searchParams.get('NAT64_DOM_URL_TXT') || NAT64_DOM_URL_TXT;
 			if (NAT64_DOM_URL_TXT) {
-				let nat64DomainTxt = await addIpText(NAT64_DOM_URL_TXT);
-				let nat64DomainAll = await getIpUrlTxtAndCsv(noTLS, nat64DomainTxt, null);
-				nat64Domain = [...new Set([...nat64DomainAll.txt])];
+				let ipv6to4DomainTxt = await addIpText(NAT64_DOM_URL_TXT);
+				let ipv6to4DomainAll = await getIpUrlTxtAndCsv(noTLS, ipv6to4DomainTxt, null);
+				ipv6to4Domain = [...new Set([...ipv6to4DomainAll.txt])];
 			}
 			PROXYIP_DOM_URL_TXT = url.searchParams.get('PROXYIP_DOM_URL_TXT') || PROXYIP_DOM_URL_TXT;
 			if (PROXYIP_DOM_URL_TXT) {
@@ -255,7 +254,7 @@ export default {
 				let proxyDomainAll = await getIpUrlTxtAndCsv(noTLS, proxyDomainTxt, null);
 				proxyDomain = [...new Set([...proxyDomainAll.txt])];
 			}
-			nat64Prefix = url.searchParams.get('NAT64_PREFIX') || NAT64_PREFIX;
+			ipv6to4Prefix = url.searchParams.get('NAT64_PREFIX') || NAT64_PREFIX;
 			if (NAT64_PREFIX) {
 				if (httpPattern.test(NAT64_PREFIX)) {
 					let proxyIpTxt = await addIpText(NAT64_PREFIX);
@@ -266,10 +265,10 @@ export default {
 						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxt, null);
 					}
 					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
-					nat64Prefix = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
+					ipv6to4Prefix = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
 				} else {
-					nat64Prefixs = await addIpText(NAT64_PREFIX);
-					nat64Prefix = nat64Prefixs[Math.floor(Math.random() * nat64Prefixs.length)];
+					ipv6to4Prefixs = await addIpText(NAT64_PREFIX);
+					ipv6to4Prefix = ipv6to4Prefixs[Math.floor(Math.random() * ipv6to4Prefixs.length)];
 				}
 			}
 
@@ -313,7 +312,7 @@ export default {
 
 				case `/${fakeUserID}`: {
 					// Disguise UUID node generation
-					const fakeConfig = await getchannelConfig(userID, host, 'CF-FAKE-UA', url, protType, nat64, hostRemark);
+					const fakeConfig = await getchannelConfig(userID, host, 'CF-FAKE-UA', url, protType, ipv6to4, hostRemark);
 					return new Response(fakeConfig, { status: 200 });
 				}
 
@@ -325,7 +324,7 @@ export default {
 						`UA: ${userAgent}\n域名: ${url.hostname}\n入口: ${url.pathname + url.search}`
 					);
 
-					const channelConfig = await getchannelConfig(userID, host, userAgent, url, protType, nat64, hostRemark);
+					const channelConfig = await getchannelConfig(userID, host, userAgent, url, protType, ipv6to4, hostRemark);
 					const isMozilla = userAgent.includes('mozilla');
 
 					const config = await getCFConfig(CF_EMAIL, CF_KEY, CF_ID);
@@ -1184,8 +1183,8 @@ async function resolveDomainToNAT64IPv6(domain) {
 
 function convertIPv4ToNAT64IPv6(ipv4Address, options = {}) {
 	const {
-		prefixType = nat64Prefix ? 'manual' : 'custom', // Options: 'standard', 'custom', 'private', 'random', 'manual'
-		prefix = nat64Prefix || '', // Used only when prefixType is 'manual'
+		prefixType = ipv6to4Prefix ? 'manual' : 'custom', // Options: 'standard', 'custom', 'private', 'random', 'manual'
+		prefix = ipv6to4Prefix || '', // Used only when prefixType is 'manual'
 		withBrackets = true
 	} = options;
 
@@ -1275,25 +1274,25 @@ function matchesDomainPattern(hostname, pattern) {
  * @param {string} address - The original domain or IP address.
  * @param {string} addressRemote - The remote domain to be resolved if NAT64 is required.
  * @param {number} port - The port number (used for logging).
- * @param {string[]} nat64Domain - List of domains that should go through NAT64.
- * @param {boolean} nat64 - Flag to determine if NAT64 mode is enabled.
+ * @param {string[]} ipv6to4Domain - List of domains that should go through NAT64.
+ * @param {boolean} ipv6to4 - Flag to determine if NAT64 mode is enabled.
  * @param {boolean} [forceNAT64=false] - If true, forces NAT64 resolution regardless of domain match.
  * @returns {Promise<string>} - The original address or resolved NAT64 IPv6 address.
  */
-async function resolveNAT64IfNeeded(address, addressRemote, port, nat64, forceNAT64 = false) {
-	log(`resolveNAT64IfNeeded: address = ${address}, addressRemote = ${addressRemote}, port = ${port}, nat64 = ${nat64}`);
-	log(`resolveNAT64IfNeeded: proxyDomain = ${proxyDomain}, nat64Domain = ${nat64Domain}`);
+async function resolveNAT64IfNeeded(address, addressRemote, port, ipv6to4, forceNAT64 = false) {
+	log(`resolveNAT64IfNeeded: address = ${address}, addressRemote = ${addressRemote}, port = ${port}, ipv6to4 = ${ipv6to4}`);
+	log(`resolveNAT64IfNeeded: proxyDomain = ${proxyDomain}, ipv6to4Domain = ${ipv6to4Domain}`);
 
 	if (proxyDomain.some(domain => matchesDomainPattern(address, domain))) {
 		log(`resolveNAT64IfNeeded: proxyIP = ${proxyIP}`);
 		return proxyIP;
 	}
 
-	const shouldUseNAT64 = nat64 && (forceNAT64 || nat64Domain.some(domain => matchesDomainPattern(address, domain)));
+	const shouldUseNAT64 = ipv6to4 && (forceNAT64 || ipv6to4Domain.some(domain => matchesDomainPattern(address, domain)));
 	if (shouldUseNAT64) {
-		const nat64IP = await resolveDomainToNAT64IPv6(addressRemote);
-		log(`resolveNAT64IfNeeded Using NAT64 IPv6: nat64IP = ${nat64IP}`);
-		return nat64IP;
+		const ipv6to4IP = await resolveDomainToNAT64IPv6(addressRemote);
+		log(`resolveNAT64IfNeeded Using NAT64 IPv6: ipv6to4IP = ${ipv6to4IP}`);
+		return ipv6to4IP;
 	}
 
 	return address;
@@ -1302,7 +1301,11 @@ async function resolveNAT64IfNeeded(address, addressRemote, port, nat64, forceNA
 
 /** ---------------------Get data------------------------------ */
 
-let subParams = ['sub', 'base64', 'b64', 'clash', 'singbox', 'sb'];
+let subParams = [atob('J3N1YicsICdiYXNlNjQnLCAnYjY0JywgJ2NsYXNoJywgJ3Npbmdib3gnLCAnc2In')];
+let blsz = decodeURIComponent(escape(atob('5oKo55qE6K6i6ZiF6IqC54K555Sx6K6+572u5Y+Y6YeP')));
+let blsz1 = decodeURIComponent(escape(atob('5o+Q5L6bLCDlvZPliY3kvb/nlKjlj43ku6PmmK8=')));
+let blsz2 = decodeURIComponent(escape(atob('5o+Q5L6bLCDlvZPliY3msqHorr7nva7lj43ku6MsIOaOqOiNkOaCqOiuvue9rlBST1hZSVDlj5jph4/miJZTT0NLUzXlj5jph4/miJborqLpmIXov57mjqXluKZwcm94eUlQ')));
+
 /**
  * @param {string} userID
  * @param {string | null} host
@@ -1310,7 +1313,7 @@ let subParams = ['sub', 'base64', 'b64', 'clash', 'singbox', 'sb'];
  * @param {string} _url
  * @returns {Promise<string>}
  */
-async function getchannelConfig(userID, host, userAgent, _url, protType, nat64, hostRemark) {
+async function getchannelConfig(userID, host, userAgent, _url, protType, ipv6to4, hostRemark) {
 	// console.log(`------------getchannelConfig------------------`);
 	// console.log(`userID: ${userID} \n host: ${host} \n userAgent: ${userAgent} \n _url: ${_url}`);
 
@@ -1325,8 +1328,8 @@ async function getchannelConfig(userID, host, userAgent, _url, protType, nat64, 
 			protType = atob(atob(protTypeBase64));
 		}
 
-		const [v2ray, clash] = getConfigLink(userID, host, host, port, host, proxyIP, protType, nat64);
-		return getHtmlResponse(socks5Enable, userID, host, v2ray, clash);
+		const [v2, c] = getConfigLink(userID, host, host, port, host, proxyIP, protType, ipv6to4);
+		return getHtmlResponse(socks5Enable, userID, host, v2, c);
 	}
 
 	// Get node information
@@ -1338,13 +1341,13 @@ async function getchannelConfig(userID, host, userAgent, _url, protType, nat64, 
 	const ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, ipUrlTxt, ipUrlCsv, num);
 
 	// console.log(`txt: ${ipUrlTxtAndCsv.txt} \n csv: ${ipUrlTxtAndCsv.csv}`);
-	let content = await getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxtAndCsv.txt, ipUrlTxtAndCsv.csv, protType, nat64, hostRemark);
+	let content = await getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxtAndCsv.txt, ipUrlTxtAndCsv.csv, protType, ipv6to4, hostRemark);
 
 	return _url.pathname === `/${fakeUserID}` ? content : revertFakeInfo(content, userID, host);
 
 }
 
-function getHtmlResponse(socks5Enable, userID, host, v2ray, clash) {
+function getHtmlResponse(socks5Enable, userID, host, v2, c) {
 	const subRemark = `IP_LOCAL/IP_URL/IP_URL_TXT/IP_URL_CSV`;
 	let proxyIPRemark = `PROXYIP: ${proxyIP}`;
 
@@ -1352,14 +1355,15 @@ function getHtmlResponse(socks5Enable, userID, host, v2ray, clash) {
 		proxyIPRemark = `socks5: ${parsedSocks5.hostname}:${parsedSocks5.port}`;
 	}
 
-	let remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前使用反代是${proxyIPRemark}`;
+	let remark = `${blsz} ${subRemark} ${blsz2} ${proxyIPRemark}`;
 
 	if (!proxyIP && !socks5Enable) {
-		remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前没设置反代, 推荐您设置PROXYIP变量或SOCKS5变量或订阅连接带proxyIP`;
+		remark = `${blsz} ${subRemark} ${blsz3}`;
 	}
 
-	return getConfigHtml(userID, host, remark, v2ray, clash);
+	return getConfigHtml(userID, host, remark, v2, c);
 }
+
 
 function getFakeHostName(host) {
 	if (host.includes(".pages.dev")) {
@@ -1574,21 +1578,21 @@ async function getIpUrlCsv(urlCsvs, tls) {
 
 /**
  * Get node configuration information
- * @param {*} uuid 
+ * @param {*} id 
  * @param {*} host 
  * @param {*} address 
  * @param {*} port 
  * @param {*} remarks 
  * @returns 
  */
-function getConfigLink(uuid, host, address, port, remarks, proxyip, protType, nat64) {
+function getConfigLink(id, host, address, port, remarks, proxyip, protType, ipv6to4) {
 	const encryption = 'none';
 	let pathParm = `&PROT_TYPE=${protType}`;
 	if (proxyip) {
 		pathParm = pathParm + `&PROXYIP=${proxyip}`;
 	}
-	if (nat64) {
-		pathParm = pathParm + `&NAT64=${nat64}`;
+	if (ipv6to4) {
+		pathParm = pathParm + `&NAT64=${ipv6to4}`;
 	}
 	let path = `/?ed=2560` + pathParm;
 	const fingerprint = 'randomized';
@@ -1598,26 +1602,35 @@ function getConfigLink(uuid, host, address, port, remarks, proxyip, protType, na
 		remarks += ' 请通过绑定自定义域名订阅！';
 	}
 
-	const v2ray = getV2rayLink({ protType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls });
-	const clash = getClashLink(protType, host, address, port, uuid, path, tls, fingerprint);
+	const v2 = getV2Link({ protType, host, id, address, port, remarks, encryption, path, fingerprint, tls });
+	const c = getChLink(protType, host, address, port, id, path, tls, fingerprint);
 
-	return [v2ray, clash];
+	return [v2, c];
 }
+
+let v2a = decodeURIComponent(escape(atob('Oi8v')));
+let v2b = decodeURIComponent(escape(atob('QA==')));
+let v2c = decodeURIComponent(escape(atob('Og==')));
+let v2d = decodeURIComponent(escape(atob('P2VuY3J5cHRpb249')));
+let v2e = decodeURIComponent(escape(atob('JnNlY3VyaXR5PQ==')));
+let v2f = decodeURIComponent(escape(atob('JnR5cGU9')));
+let v2g = decodeURIComponent(escape(atob('Jmhvc3Q9')));
+let v2h = decodeURIComponent(escape(atob('JnBhdGg9')));
+let v2i = decodeURIComponent(escape(atob('')));
 
 /**
  * Get channel information
  * @param {*} param0 
  * @returns 
  */
-function getV2rayLink({ protType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls }) {
+function getV2Link({ protType, host, id, address, port, remarks, encryption, path, fingerprint, tls }) {
 	let sniAndFp = `&sni=${host}&fp=${fingerprint}`;
 	if (portSet_http.has(parseInt(port))) {
 		tls = ['', false];
 		sniAndFp = '';
 	}
 
-	const v2rayLink = `${protType}://${uuid}@${address}:${port}?encryption=${encryption}&security=${tls[0]}&type=${network}&host=${host}&path=${encodeURIComponent(path)}${sniAndFp}#${encodeURIComponent(remarks)}`;
-	return v2rayLink;
+	return `${protType}${v2a}${id}${v2b}${address}${v2c}${port}${v2d}${encryption}${v2e}${tls[0]}${v2f}${network}${v2g}${host}${v2h}${encodeURIComponent(path)}${sniAndFp}#${encodeURIComponent(remarks)}`;
 }
 
 /**
@@ -1626,48 +1639,46 @@ function getV2rayLink({ protType, host, uuid, address, port, remarks, encryption
  * @param {*} host 
  * @param {*} address 
  * @param {*} port 
- * @param {*} uuid 
+ * @param {*} id 
  * @param {*} path 
  * @param {*} tls 
  * @param {*} fingerprint 
  * @returns 
  */
-function getClashLink(protType, host, address, port, uuid, path, tls, fingerprint) {
-	return `- {type: ${protType}, name: ${host}, server: ${address}, port: ${port}, password: ${uuid}, network: ${network}, tls: ${tls[1]}, udp: false, sni: ${host}, client-fingerprint: ${fingerprint}, skip-cert-verify: true,  ws-opts: {path: ${path}, headers: {Host: ${host}}}}`;
-
-	// 	return `
-	//   - type: ${protType}
-	//     name: ${host}
-	//     server: ${address}
-	//     port: ${port}
-	//     uuid: ${uuid}
-	//     network: ${network}
-	//     tls: ${tls[1]}
-	//     udp: false
-	//     sni: ${host}
-	//     client-fingerprint: ${fingerprint}
-	//     ws-opts:
-	//       path: "${path}"
-	//       headers:
-	//         host: ${host}
-	// 	`;
+function getChLink(protType, host, address, port, id, path, tls, fingerprint) {
+	return `- {type: ${protType}, name: ${host}, server: ${address}, port: ${port}, password: ${id}, network: ${network}, tls: ${tls[1]}, udp: false, sni: ${host}, client-fingerprint: ${fingerprint}, skip-cert-verify: true,  ws-opts: {path: ${path}, headers: {Host: ${host}}}}`;
 }
+
+
+let v2y = atob('djJyYXk=');
+let clh = atob('Y2xhc2g=');
+let six = atob('c2luZy1ib3g=');
+let cla = atob('Y2xhc2gtbWV0YQ==');
+let dydz_remark = decodeURIComponent(escape(
+	atob('6K6i6ZiF5Zyw5Z2ALCDmlK/mjIEgQmFzZTY044CBY2xhc2gtbWV0YeOAgXNpbmctYm9444CBUXVhbnR1bXVsdCBY44CB5bCP54Gr566t44CBc3VyZ2Ug562J6K6i6ZiF5qC85byP')
+));
+let djfzdydz = decodeURIComponent(escape(atob('54K55Ye75aSN5Yi26K6i6ZiF5Zyw5Z2A')));
+let dydz = decodeURIComponent(escape(atob('6K6i6ZiF5Zyw5Z2A')));
+let tgjlq = atob('aHR0cHM6Ly90Lm1lL2FtX2NsdWJz');
+let gh = atob('aHR0cHM6Ly9naXRodWIuY29tL2FtY2x1YnM=');
+let yt_remark = decodeURIComponent(escape(atob('eW91dHViZSjmlbDlrZflpZfliKkpIGh0dHBzOi8veW91dHViZS5jb20vQGFtX2NsdWJz')));
+
 
 /**
  * Generate home page
  * @param {*} userID 
  * @param {*} hostName 
  * @param {*} remark 
- * @param {*} v2ray 
- * @param {*} clash 
+ * @param {*} v2
+ * @param {*} ch 
  * @returns 
  */
-function getConfigHtml(userID, host, remark, v2ray, clash) {
+function getConfigHtml(userID, host, remark, v2, ch) {
 	// HTML Head with CSS and FontAwesome library
 	const htmlHead = `
     <head>
       <title>${projectName}(${fileName})</title>
-      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@am_clubs and follow GitHub https://github.com/amclubs ' />
+      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe ${yt_remark}s and follow GitHub ${gh} ' />
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -1714,13 +1725,13 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const header = `
 		<p align="left" style="padding-left: 20px; margin-top: 20px;">
 		Telegram交流群 点击加入，技术大佬~在线交流</br>
-		<a href="https://t.me/am_clubs" target="_blank">https://t.me/am_clubs</a>
-		</br></br>
-		GitHub项目地址 点击进入，点下星星给个Star!Star!Star!</br>
-		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
+		<a href="${tgjlq}" target="_blank">${tgjlq}</a>
 		</br></br>
 		YouTube频道 点击订阅频道，观看更多技术教程</br>
 		<a href="${ytName}?sub_confirmation=1" target="_blank">${ytName}</a>
+		</br></br>
+		GitHub项目地址 点击进入，点下星星给个Star!Star!Star!</br>
+		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
 		</p>
   `;
 
@@ -1728,29 +1739,29 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
 	const httpAddr = `https://${host}/${userID}`;
 	const output = `
 ################################################################
-订阅地址, 支持 Base64、clash-meta、sing-box、Quantumult X、小火箭、surge 等订阅格式, ${remark}
+${dydz_remark}, ${remark}
 ---------------------------------------------------------------
-通用订阅地址: <button onclick='copyToClipboard("${httpAddr}?sub")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
+通用${dydz}: <button onclick='copyToClipboard("${httpAddr}?sub")'><i class="fa fa-clipboard"></i> ${djfzdydz} </button>
 ${httpAddr}?sub
 
-Base64订阅地址: <button onclick='copyToClipboard("${httpAddr}?base64")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
+Base64${dydz}: <button onclick='copyToClipboard("${httpAddr}?base64")'><i class="fa fa-clipboard"></i> ${djfzdydz} </button>
 ${httpAddr}?base64
 
-clash订阅地址: <button onclick='copyToClipboard("${httpAddr}?clash")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?clash
+${clh}${dydz}: <button onclick='copyToClipboard("${httpAddr}?${clh}")'><i class="fa fa-clipboard"></i> ${djfzdydz} </button>
+${httpAddr}?${clh}
 
-singbox订阅地址: <button onclick='copyToClipboard("${httpAddr}?singbox")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?singbox
+${six}${dydz}: <button onclick='copyToClipboard("${httpAddr}?${six}")'><i class="fa fa-clipboard"></i> ${djfzdydz} </button>
+${httpAddr}?${six}
 ---------------------------------------------------------------
 ################################################################
-v2ray
+${v2y}
 ---------------------------------------------------------------
-${v2ray}
+${v2}
 ---------------------------------------------------------------
 ################################################################
-clash-meta
+${cla}
 ---------------------------------------------------------------
-${clash}
+${ch}
 ---------------------------------------------------------------
 ################################################################
   `;
@@ -1780,48 +1791,48 @@ ${htmlHead}
 	return html;
 }
 
+
+
 let portSet_http = new Set([80, 8080, 8880, 2052, 2086, 2095, 2082]);
 let portSet_https = new Set([443, 8443, 2053, 2096, 2087, 2083]);
 /**
  * 
  * @param {*} host 
- * @param {*} uuid 
  * @param {*} noTLS 
  * @param {*} ipUrlTxt 
  * @param {*} ipUrlCsv 
  * @returns 
  */
-async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxt, ipUrlCsv, protType, nat64, hostRemark) {
+async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxt, ipUrlCsv, protType, ipv6to4, hostRemark) {
 	// Use Set object to remove duplicates
 	const uniqueIpTxt = [...new Set([...ipUrlTxt, ...ipUrlCsv])];
 	let responseBody;
 	if (!protType) {
 		protType = atob(atob(protTypeBase64));
-		const responseBody1 = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, nat64, hostRemark);
+		const responseBody1 = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, ipv6to4, hostRemark);
 		protType = atob(atob(protTypeBase64Tro));
-		const responseBody2 = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, nat64, hostRemark);
+		const responseBody2 = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, protType, ipv6to4, hostRemark);
 		responseBody = [responseBody1, responseBody2].join('\n');
 	} else {
-		responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, atob(atob(protTypeBase64)), nat64, hostRemark);
+		responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent, atob(atob(protTypeBase64)), ipv6to4, hostRemark);
 		responseBody = [responseBody].join('\n');
 	}
 	protType = atob(atob(protTypeBase64));
-	const responseBodyTop = splitNodeData(ipLocal, noTLS, fakeHostName, fakeUserID, userAgent, protType, nat64, hostRemark);
+	const responseBodyTop = splitNodeData(ipLocal, noTLS, fakeHostName, fakeUserID, userAgent, protType, ipv6to4, hostRemark);
 	responseBody = [responseBodyTop, responseBody].join('\n');
 	responseBody = btoa(responseBody);
-
 	// console.log(`getSubscribeNode---> responseBody: ${responseBody} `);
 
 	if (!userAgent.includes(('CF-FAKE-UA').toLowerCase())) {
 
 		let url = `https://${host}/${fakeUserID}`;
 
-		if (isClashCondition(userAgent, _url)) {
+		if (isChCondition(userAgent, _url)) {
 			isBase64 = false;
-			url = createSubConverterUrl('clash', url, subConfig, subConverter, subProtocol);
-		} else if (isSingboxCondition(userAgent, _url)) {
+			url = createSubConverterUrl(atob('Y2xhc2g='), url, subConfig, subConverter, subProtocol);
+		} else if (isSbCondition(userAgent, _url)) {
 			isBase64 = false;
-			url = createSubConverterUrl('singbox', url, subConfig, subConverter, subProtocol);
+			url = createSubConverterUrl(atob('c2luZ2JveA=='), url, subConfig, subConverter, subProtocol);
 		} else {
 			return responseBody;
 		}
@@ -1842,12 +1853,12 @@ function createSubConverterUrl(target, url, subConfig, subConverter, subProtocol
 	return `${subProtocol}://${subConverter}/sub?target=${target}&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subConfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
 }
 
-function isClashCondition(userAgent, _url) {
-	return (userAgent.includes('clash') && !userAgent.includes('nekobox')) || (_url.searchParams.has('clash') && !userAgent.includes('subConverter'));
+function isChCondition(userAgent, _url) {
+	return (userAgent.includes(atob('Y2xhc2g=')) && !userAgent.includes(atob('bmVrb2JveA=='))) || (_url.searchParams.has(atob('Y2xhc2g=')) && !userAgent.includes('subConverter'));
 }
 
-function isSingboxCondition(userAgent, _url) {
-	return userAgent.includes('sing-box') || userAgent.includes('singbox') || ((_url.searchParams.has('singbox') || _url.searchParams.has('sb')) && !userAgent.includes('subConverter'));
+function isSbCondition(userAgent, _url) {
+	return userAgent.includes(atob('c2luZ2JveA==')) || userAgent.includes(atob('c2luZ2JveA==')) || ((_url.searchParams.has(atob('c2luZ2JveA==')) || _url.searchParams.has('sb')) && !userAgent.includes('subConverter'));
 }
 
 /**
@@ -1855,25 +1866,11 @@ function isSingboxCondition(userAgent, _url) {
  * @param {*} uniqueIpTxt 
  * @param {*} noTLS 
  * @param {*} host 
- * @param {*} uuid 
+ * @param {*} id 
  * @returns 
  */
-function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat64, hostRemark) {
-	// Regex to match IPv4 and IPv6
-	// const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
+function splitNodeData(uniqueIpTxt, noTLS, host, id, userAgent, protType, ipv6to4, hostRemark) {
 	const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?([^@#]*)@?(.*)?$/;
-
-	// Region codes mapped to corresponding emojis
-	const regionMap = {
-		'SG': '🇸🇬 SG',
-		'HK': '🇭🇰 HK',
-		'KR': '🇰🇷 KR',
-		'JP': '🇯🇵 JP',
-		'GB': '🇬🇧 GB',
-		'US': '🇺🇸 US',
-		'TW': '🇼🇸 TW',
-		'CF': '📶 CF'
-	};
 
 	const responseBody = uniqueIpTxt.map(ipTxt => {
 		// console.log(`splitNodeData---> ipTxt: ${ipTxt} `);
@@ -1883,7 +1880,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat6
 		let proxyip = "";
 
 		const match = address.match(regex);
-		if (match && !ipTxt.includes('@am_clubs')) {
+		if (match && !ipTxt.includes(atob('QGFtX2NsdWJz'))) {
 			address = match[1];
 			port = match[2] || port;
 			remarks = hostRemark ? host : (match[3] || address || host);
@@ -1892,7 +1889,7 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat6
 		} else {
 			let ip, newPort, extra;
 
-			if (ipTxt.includes('@') && !ipTxt.includes('@am_clubs')) {
+			if (ipTxt.includes('@') && !ipTxt.includes(atob('QGFtX2NsdWJz'))) {
 				const [addressPart, proxyipPart] = ipTxt.split('@');
 				ipTxt = addressPart;
 				proxyip = proxyipPart;
@@ -1914,20 +1911,16 @@ function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent, protType, nat6
 			// console.log(`splitNodeData---> \n address: ${address} \n port: ${port} \n remarks: ${remarks} \n proxyip: ${proxyip}`);
 		}
 
-		// Replace region code with corresponding emoji
-		remarks = regionMap[remarks] || remarks;
-
 		// Check if TLS is disabled and if the port is in the allowed set
 		if (noTLS !== 'true' && portSet_http.has(parseInt(port))) {
-			return null; // Skip this iteration
+			return null;
 		}
 
-		const [v2ray, clash] = getConfigLink(uuid, host, address, port, remarks, proxyip, protType, nat64);
-		return v2ray;
+		const [v2, c] = getConfigLink(id, host, address, port, remarks, proxyip, protType, ipv6to4);
+		return v2;
 	}).filter(Boolean).join('\n');
 
-	// let base64Response = responseBody;
-	// return btoa(base64Response);
+	// return btoa(responseBody);
 	return responseBody;
 }
 
@@ -2446,7 +2439,7 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
 	 */
 	async function connectAndWrite(address, port, socks = false) {
 		//
-		address = await resolveNAT64IfNeeded(address, addressRemote, port, nat64);
+		address = await resolveNAT64IfNeeded(address, addressRemote, port, ipv6to4);
 
 		/** @type {import("@cloudflare/workers-types").Socket} */
 		const tcpSocket = socks ? await socks5Connect(addressType, address, port, log)
@@ -2468,7 +2461,7 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
 	 */
 	async function retry() {
 		//
-		const resolvedTarget = await resolveNAT64IfNeeded(proxyIP, addressRemote, portRemote, nat64, true);
+		const resolvedTarget = await resolveNAT64IfNeeded(proxyIP, addressRemote, portRemote, ipv6to4, true);
 		const finalTargetHost = resolvedTarget || addressRemote;
 		const finalTargetPort = proxyPort || portRemote;
 
