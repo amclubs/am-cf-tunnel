@@ -2,4 +2,4 @@
 162.159.129.11:2053#US
 162.159.129.67:8443#US
 cris.ns.cloudflare.com
-www.udemy.com
+www.udemy.com#教程样例不作维护
