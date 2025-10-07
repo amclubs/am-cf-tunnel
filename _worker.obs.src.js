@@ -1,3 +1,10 @@
+/**
+ * YouTube  : https://youtube.com/@am_clubs
+ * Telegram : https://t.me/am_clubs
+ * GitHub   : https://github.com/amclubs
+ * BLog     : https://amclubss.com
+ */
+
 let id = atob('ZWM4NzJkOGYtNzJiMC00YTA0LWI2MTItMDMyN2Q4NWUxOGVk');
 
 let pnum = atob('NDQz');
