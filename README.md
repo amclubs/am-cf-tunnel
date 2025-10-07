@@ -1,7 +1,7 @@
-# 🚀[am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
+### 🚀[am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
 这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS、Trojan 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS、Trojan 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS、Trojan节点,实现一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI)、[🎬 YouTube](https://youtube.com/@am_clubs?sub_confirmation=1)、 [💬 Telegram](https://t.me/am_clubs)、[📂 GitHub](https://github.com/amclubs)、[🌐 Blog](https://amclubss.com)
 
-## 🎬推荐视频教程
+### 🎬推荐视频教程
 - [Error1101和522解决教程](https://youtu.be/4fcyJjstFdg) | [优选IP和反代IP教程](https://youtu.be/pKrlfRRB0gU) | [常见-1问题教程](https://youtu.be/kYQxV1G-ePw) | [免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [NAT64版教程](https://youtu.be/nx80sGpVoBM)
 - [VLESS免费节点部署教程](https://youtu.be/dPH63nITA0M) | [Trojan免费节点部署教程](https://youtu.be/uh27CVVi6HA) | [从入门到精通免费部署教程](https://youtu.be/ag12Rpc9KP4)| [高级固定节点区域教程](https://youtu.be/wgeM9XvZ5RA)
 - [GitHub私有储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储IP文件教程](https://youtu.be/dzxezRV1v-o)  | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70) | [聚合节点订阅教程](https://youtu.be/YBO2hf96150)
@@ -26,6 +26,7 @@
 
 </details>
 
+## 
 ## ⚙️ 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
 <details>
 <summary>点击展开/收起</summary>
@@ -53,6 +54,7 @@
    
 </details>
 
+## 
 ## 📦三、Pages 上传 部署方法 **(最佳推荐!!!)** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
  <details>
 <summary>点击展开/收起</summary>
@@ -80,6 +82,7 @@
 
 </details>
 
+## 
 ## 🧰四、Pages GitHub 部署方法 **(不推荐)** [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
 <details>
 <summary>点击展开/收起</summary>
@@ -102,19 +105,24 @@
    - `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
    - 在登录成功页面 ID选项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `保存`。
    - 保存成功后，原登录密码(UUID)已作废不能访问，用新登录密码(UUID)登录访问即可。
-6. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+6. 订阅连接和节点生成使用方法： [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
    - 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
 
 </details>
 
+## 
 ## 🔧五、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | ID   | ec872d8f-72b0-4a04-b612-0327d85e18ed（默认）|✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) VLESS、Trojan节点共用 | |
 | D_URL | https://cloudflare-dns.com/dns-query |❌| DNS解析获取作用，小白勿用                                                           |  |
 
+## 
+## 🧩六、节点订阅配置  [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+- 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
 
-## 🛠六、已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
+## 
+## 🛠已适配订阅工具 [点击进入视频教程](https://youtu.be/xGOL57cmvaw) [点进进入karing视频教程](https://youtu.be/M3vLLBWfuFg)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -134,11 +142,12 @@
    - [openclash(clash.meta)](https://github.com/vernesong/OpenClash/releases) 
   
 </details>
-	  
-## 🙏感谢
+
+##
+### 🙏感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
 
-## 🌟推荐
+###  🌟推荐
 **【流量光】** 中转+专线高速机场 (**9.9元300G每月**) (**75元包年每月300G**) (**55元1000GB不限时**)✅畅爽晚高峰 解锁ChatGPT、全流媒体(送小火箭)
 </br>🌐官网：[https://llgjc1.com](https://llgjc1.com/#/register?code=bIUDEPTu)
 
@@ -157,7 +166,7 @@
 </details>
 </center>
 
- #
+# 
  ⚠️免责声明:
  - 1、该项目设计和开发仅供学习、研究和安全测试目的。请于下载后 24 小时内删除, 不得用作任何商业用途, 文字、数据及图片均有所属版权, 如转载须注明来源。
  - 2、使用本程序必循遵守部署服务器所在地区的法律、所在国家和用户所在国家的法律法规。对任何人或团体使用该项目时产生的任何后果由使用者承担。
