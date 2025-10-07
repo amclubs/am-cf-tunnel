@@ -147,6 +147,8 @@
 | PROT_TYPE        | 默认空          |❌|      默认空,就是生成vless和trojan节点，vless(只生成vless节点)，trojan(只生成trojan节点)           | [视频教程](https://www.youtube.com/watch?v=emEBm8Gw2wI&t=922s) |
 | HOST_REAMRK           | true/false                            |❌ | 默认false,是否用订阅域名做节点别名                                      ||
 
+- 本频道订阅器转换地址：https://sub.amclubss.com
+  
 </details>
 
 ## 
