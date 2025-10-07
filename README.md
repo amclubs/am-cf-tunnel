@@ -1,19 +1,19 @@
 # 🚀[am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
-这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS节点,实现一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI) | [NAT64版教程](https://youtu.be/nx80sGpVoBM)
+这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS、Trojan 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS、Trojan 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS、Trojan节点,实现一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI)
 
 #
 ▶️ **新人[YouTube](https://youtube.com/@am_clubs?sub_confirmation=1)** 需要您的支持，请务必帮我**点赞**、**关注**、**打开小铃铛**，***十分感谢！！！*** ✅
 </br>🎁请 **follow** 我的[GitHub](https://github.com/amclubs)、给我所有项目一个 **Star** 星星（拜托了）！你的支持是我不断前进的动力！ 💖
-</br>✅**解锁更多技能** [加入TG群【am_clubs】](https://t.me/am_clubs)、[YouTube频道【@am_clubs】](https://youtube.com/@am_clubs?sub_confirmation=1)、[【博客(国内)】](https://amclubss.com)、[【博客(国际)】](https://amclubs.blogspot.com) 
-</br>✅点击观看教程[CLoudflare免费节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbrY0Pk8gm3T7m8MZ-InquF) | [VPS搭建节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaVlrHP9Du61CaEThYCQaiY) | [获取免费域名](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [免费VPN](https://www.youtube.com/playlist?list=PLGVQi7TjHKXY7V2JF-ShRSVwGANlZULdk) | [IPTV源](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbkozDYVsDRJhbnNaEOC76w) | [Mac和Win工具](https://www.youtube.com/playlist?list=PLGVQi7TjHKXYBWu65yP8E08HxAu9LbCWm) | [AI分享](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaodkM-mS-2Nwggwc5wRjqY)
+</br>✅**解锁更多技能** [加入TG群【am_clubs】](https://t.me/am_clubs)、[YouTube频道【数字套利】](https://youtube.com/@am_clubs?sub_confirmation=1)、[【博客(教程)】](https://amclubss.com)
+</br>✅点击观看教程[CLoudflare节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbrY0Pk8gm3T7m8MZ-InquF) | [VPS搭建节点](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaVlrHP9Du61CaEThYCQaiY) | [免费域名](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [免费VPN](https://www.youtube.com/playlist?list=PLGVQi7TjHKXY7V2JF-ShRSVwGANlZULdk) | [IPTV源](https://www.youtube.com/playlist?list=PLGVQi7TjHKXbkozDYVsDRJhbnNaEOC76w) | [Mac和Win工具](https://www.youtube.com/playlist?list=PLGVQi7TjHKXYBWu65yP8E08HxAu9LbCWm) | [AI黑科技](https://www.youtube.com/playlist?list=PLGVQi7TjHKXaodkM-mS-2Nwggwc5wRjqY)
 
 # 🎬推荐视频教程
-- [Error1101和522解决教程](https://youtu.be/4fcyJjstFdg) | [优选IP和反代IP教程](https://youtu.be/pKrlfRRB0gU) | [常见-1问题教程](https://youtu.be/kYQxV1G-ePw) | [免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+- [Error1101和522解决教程](https://youtu.be/4fcyJjstFdg) | [优选IP和反代IP教程](https://youtu.be/pKrlfRRB0gU) | [常见-1问题教程](https://youtu.be/kYQxV1G-ePw) | [免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [NAT64版教程](https://youtu.be/nx80sGpVoBM)
 - [VLESS免费节点部署教程](https://youtu.be/dPH63nITA0M) | [Trojan免费节点部署教程](https://youtu.be/uh27CVVi6HA) | [从入门到精通免费部署教程](https://youtu.be/ag12Rpc9KP4)| [高级固定节点区域教程](https://youtu.be/wgeM9XvZ5RA)
 - [GitHub私有储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储IP文件教程](https://youtu.be/dzxezRV1v-o)  | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70) | [聚合节点订阅教程](https://youtu.be/YBO2hf96150)
 - [🔥amclubs-cfnat自动优先IP(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [Linux&openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [Mac版](https://youtu.be/gf6gncc2yEE) | [安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [docker版](https://youtu.be/gRnNwoeUQKU) 
 
-## 📝一、需要准备的前提资料
+## 📝一、前期准备资料
 <details>
 <summary>点击展开/收起</summary>
 
@@ -37,25 +37,25 @@
 <summary>点击展开/收起</summary>
 
 1. 部署 Cloudflare Worker：
-   - 在 Cloudflare Worker 控制台中创建一个新的 Worker。
-   - 将 [_worker.js](https://github.com/amclubs/am-cf-tunnel/blob/main/_worker.js) 的内容粘贴到 Worker 编辑器中。
-2. 给 workers绑定 自定义域： [免费域名申请教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+   - 在 CloudFlare主页的左边菜单的 `计算(Workers)` 选项卡 -> 点击 `Workers 和 Pages` -> 右上方点击 -> `创建应用程序` -> 选择 `Workers`里的 `从 Hello World! 开始` 点击 `开始使用` -> 填入 `Worker 名称`(此名称自己命名) 后 -> 右下方点击 `部署` 后-> 右上方点击 `断续处理项目`。(此步已有可忽略)。
+2. 给UUID设置KV存储桶(推荐设置)： 
+   - 在 CloudFlare主页的左边菜单的 `存储和数据库` 选项卡 -> 展开选择点击 `Workers KV` -> 右方点击 -> `创建实例(Create Instance)` -> 填入 `命名空间名称`(此名称自己命名) 后 -> 点击 `创建`。(此步已有可忽略)
+   - 在 workers控制台的 `绑定` 选项卡 -> 右方点击 -> `添加绑定` -> 选择 `KV 命名空间` 右下方点击 -> `添加绑定` -> 变量名称 填入 `amclubs`(此名称固定不能变) -> KV 命名空间 选择 在上面创建的 `命名空间名称`后 -> 右下方点击 `添加绑定`。
+3. 部署 Cloudflare Worker代码：
+   - 在 workers控制台的 右上角方点击 `编辑代码(</>)` 图标进入代码编辑页面。
+   - 将 [_worker.js](https://github.com/amclubs/am-cf-tunnel/blob/main/_worker.js) 的内容粘贴到 Worker 编辑器中 右上方点击 -> `部署` 完成部署。
+4. 给 workers绑定 自定义域： [免费域名申请教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
    - 在 workers控制台的 `设置` 选项卡 -> 点击 `域和路由` -> 右方点击 -> `添加` -> 选择 `自定义域`。
    - 填入你已转入 CloudFlare 域名 (amclubss.com) 解析服务的次级域名，例如:`vless.amclubss.com`后 点击 `添加域`，等待证书生效即可。
-3. 给UUID设置KV存储桶(可选项，推荐设置)： 
-   - 在 CloudFlare主页的左边菜单的 ` 存储和数据库` 选项卡 -> 展开选择点击 `KV` -> 右方点击 -> `创建` -> 填入 `命名空间名称`(此名称自己命名) 后 -> 点击 `添加`。(此步已有可忽略)
-   - 在 workers控制台的 `设置` 选项卡 -> 点击 `绑定` -> 右方点击 -> `添加` -> 选择 `KV 命名空间` -> 变量名称 填入 `amclubs`(此名称固定不能变) -> KV 命名空间 选择 在上面创建的 `命名空间名称`后 -> 右下方点击 `部署`。
-4. 访问订阅内容：
-   - 访问 `https://[YOUR-WORKERS-URL]/[UUID]` 即可获取订阅内容（默认UUID是：d0298536-d670-4045-bbb1-ddd5ea68683e）。
-   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?sub` 就是你的通用自适应订阅地址(Quantumult X、Clash、singbox、小火箭、v2rayN、v2rayU、surge、PassWall、SSR+、Karing等)。
-   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?base64` Base64订阅格式，适用PassWall,SSR+等。
-   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?clash` Clash订阅格式，适用OpenClash等。
-   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?singbox` singbox订阅格式，适用singbox等。
-   - 例如 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e?sub&IP_URL=https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipUrl.txt` 自动义变量等参数。
-5. 修改默认UUID变量，使用KV存储桶(可选项，推荐修改，防止别人用你节点)： 
-   - 访问 `https://vless.amclubss.com/d0298536-d670-4045-bbb1-ddd5ea68683e/ui` 即可进入修改UUID页面 
-   - 在UUID页面UUID项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `Save`。
-   - 保存成功后，原UUID已作废不能访问，用新UUID访问  `https://vless.amclubss.com/新的UUID` 即可获取订阅内容。
+5. 验证部署是否成功：
+   - 访问 `https://[YOUR-WORKERS-URL]` 即可进入登录页面,登录成功就是完成部署(默认登录密码(UUID)是：ec872d8f-72b0-4a04-b612-0327d85e18ed)。
+   - 例如 `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
+6. 修改默认登录密码(UUID)变量，使用KV存储桶(推荐修改，防止别人用你节点)： 
+   - `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
+   - 在登录成功页面 ID选项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `保存`。
+   - 保存成功后，原登录密码(UUID)已作废不能访问，用新登录密码(UUID)登录访问即可。
+7. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+   - 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
    
 </details>
 
