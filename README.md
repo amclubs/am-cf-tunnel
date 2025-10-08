@@ -1,11 +1,12 @@
 ### 🚀[am-cf-tunnel](https://github.com/amclubs/am-cf-tunnel)
-这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS、Trojan 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS、Trojan 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS、Trojan节点,实现一键订阅节点。[最新视频教程](https://youtu.be/emEBm8Gw2wI)、[🎬 YouTube](https://youtube.com/@am_clubs?sub_confirmation=1)、 [💬 Telegram](https://t.me/am_clubs)、[📂 GitHub](https://github.com/amclubs)、[🌐 Blog](https://amclubss.com)
+这是一个基于 Cloudflare Workers 和 Pages平台的脚本，在原版的基础上修改了显示 VLESS、Trojan 配置信息转换为订阅内容。使用该脚本，你可以方便地将 VLESS、Trojan 配置信息使用在线配置转换到 Clash、 Singbox 、Quantumult X等工具中订阅使用。Cloudflare Workers 和 Pages 生成VLESS、Trojan节点,实现一键订阅节点。[最新视频教程](https://youtu.be/i-XnnP-MptY)、[🎬 YouTube](https://youtube.com/@am_clubs?sub_confirmation=1)、 [💬 Telegram](https://t.me/am_clubs)、[📂 GitHub](https://github.com/amclubs)、[🌐 Blog](https://amclubss.com)
 
 ### 🎬推荐视频教程
 - [Error1101和522解决教程](https://youtu.be/4fcyJjstFdg) | [优选IP和反代IP教程](https://youtu.be/pKrlfRRB0gU) | [常见-1问题教程](https://youtu.be/kYQxV1G-ePw) | [免费域名教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) | [NAT64版教程](https://youtu.be/nx80sGpVoBM)
 - [VLESS免费节点部署教程](https://youtu.be/dPH63nITA0M) | [Trojan免费节点部署教程](https://youtu.be/uh27CVVi6HA) | [从入门到精通免费部署教程](https://youtu.be/ag12Rpc9KP4)| [高级固定节点区域教程](https://youtu.be/wgeM9XvZ5RA)
 - [GitHub私有储优选IP文教程](https://youtu.be/vX3U3FuuTT8) | [CF免费KV存储IP文件教程](https://youtu.be/dzxezRV1v-o)  | [获取CF自家域名无限节点](https://youtu.be/novrPiMsK70) | [聚合节点订阅教程](https://youtu.be/YBO2hf96150)
-- [🔥amclubs-cfnat自动优先IP(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [Linux&openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [Mac版](https://youtu.be/gf6gncc2yEE) | [安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [docker版](https://youtu.be/gRnNwoeUQKU) 
+- [🔥amclubs-cfnat自动优先IP(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [Linux&openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [Mac版](https://youtu.be/gf6gncc2yEE) | [安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [docker版](https://youtu.be/gRnNwoeUQKU)
+- 本频道订阅器转换地址：https://sub.amclubss.com
 
 ## 📝一、前期准备资料
 <details>
@@ -27,7 +28,7 @@
 </details>
 
 ## 
-## ⚙️ 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=195s)
+## ⚙️ 二、Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=165s)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -49,13 +50,14 @@
    - `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
    - 在登录成功页面 ID选项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `保存`。
    - 保存成功后，原登录密码(UUID)已作废不能访问，用新登录密码(UUID)登录访问即可。
-7. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+7. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=596s)
    - 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
+   - 本频道订阅器转换地址：https://sub.amclubss.com
    
 </details>
 
 ## 
-## 📦三、Pages 上传 部署方法 **(最佳推荐!!!)** [视频教程](https://www.youtube.com/watch?v=wgeM9XvZ5RA&t=1203s)
+## 📦三、Pages 上传 部署方法 **(最佳推荐!!!)** [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=1100s)
  <details>
 <summary>点击展开/收起</summary>
 
@@ -77,8 +79,9 @@
    - `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
    - 在登录成功页面 ID选项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `保存`。
    - 保存成功后，原登录密码(UUID)已作废不能访问，用新登录密码(UUID)登录访问即可。
-6. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+6. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=596s)
    - 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
+   - 本频道订阅器转换地址：https://sub.amclubss.com
 
 </details>
 
@@ -105,13 +108,14 @@
    - `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
    - 在登录成功页面 ID选项 -> 填入 `新的UUID` 后,[在线获取UUID](https://1024tools.com/uuid) -> 点击 `保存`。
    - 保存成功后，原登录密码(UUID)已作废不能访问，用新登录密码(UUID)登录访问即可。
-6. 订阅连接和节点生成使用方法： [视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR)
+6. 订阅连接和节点生成使用方法：  [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=596s)
    - 进入 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub) 项目 -> 根据项目教程部署和使用。(此步已有可忽略)
+   - 本频道订阅器转换地址：https://sub.amclubss.com
 
 </details>
 
 ## 
-## 🔧五、变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
+## 🔧五、变量说明 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=468s)
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
 | ID   | ec872d8f-72b0-4a04-b612-0327d85e18ed（默认）|✅| 支持Cloudflare的KV存储桶设置 [在线获取UUID](https://1024tools.com/uuid) VLESS、Trojan节点共用 | |
@@ -124,13 +128,13 @@
 <summary>点击展开/收起</summary>
 
 1. Fork或克隆本仓库[am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub)到您的 GitHub/GitLab 账户
-2. 登录 [Vercel](https://vercel.com)，点击"New Project"
+2. 登录 [Vercel](https://vercel.com)，点击"New Project" <a href="https://www.youtube.com/watch?v=ZxHLLlxuJyI&t=28s">[点击观看注册视频教程]</a>
 3. 导入您的仓库，使用默认设置
 4. **⚠️ 重要：在"Settings" > "Environment Variables"中添加 `UUID` 和 `HOST` 变量（必须设置）**
 5. 点击"Deploy"
 访问 `http://部署域名` 即可。
 
-6. 变量说明 [视频教程](https://www.youtube.com/watch?v=ag12Rpc9KP4&t=739s)
+6. 变量说明 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=808s)
 
 | 变量名 | 示例 | 必填 | 备注 | YT |
 |-----|-----|-----|-----|-----|
