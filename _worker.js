@@ -6,7 +6,6 @@
  */
 
 let id = atob('ZWM4NzJkOGYtNzJiMC00YTA0LWI2MTItMDMyN2Q4NWUxOGVk');
-let kv_id;
 
 let pnum = atob('NDQz');
 let paddrs = [
