@@ -49,8 +49,10 @@ export default {
             const kvCheckResponse = await check_kv(env);
             let kv_id = '', kv_pDomain = '', kv_p64Domain = '';
             if (!kvCheckResponse) {
-                const { kv_id, kv_pDomain, kv_p64Domain } = await get_kv(env);
+                ({ kv_id, kv_pDomain, kv_p64Domain } = await get_kv(env));
             }
+            log(`[fetch]--> kv_id = ${kv_id}, kv_pDomain = ${kv_pDomain}, kv_p64Domain = ${kv_p64Domain}`);
+
             const url = new URL(request.url);
             enableLog = url.searchParams.get('ENABLE_LOG') || ENABLE_LOG || enableLog;
             id = (kv_id || ID || id).toLowerCase();
