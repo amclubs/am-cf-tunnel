@@ -49,13 +49,14 @@ export default {
             const kvCheckResponse = await check_kv(env);
             let kvData = {};
             if (!kvCheckResponse) {
-                const kvData = await get_kv(env) || {};
-                log(`[fetch]--> kv_id = ${kvData.kv_id}, kv_pDomain = ${kvData.kv_pDomain}, kv_p64Domain = ${kvData.kv_p64Domain}`);
+                kvData = await get_kv(env) || {};
+                log(`[fetch]--> kv_id = ${kvData.kv_id}, kv_pDomain = ${JSON.stringify(kvData.pDomain)}, kv_p64Domain = ${JSON.stringify(kvData.kv_p64Domain)}`);
             }
 
             const url = new URL(request.url);
             enableLog = url.searchParams.get('ENABLE_LOG') || ENABLE_LOG || enableLog;
             id = (kvData.kv_id || ID || id).toLowerCase();
+            log(`[fetch]--> id = ${id}`);
 
             paddr = url.searchParams.get('PADDR') || PADDR || paddr;
             if (paddr) {
@@ -64,10 +65,12 @@ export default {
                 pnum = port || pnum;
             }
             pDomain = kvData.kv_pDomain || pDomain;
+            log(`[fetch]--> pDomain = ${JSON.stringify(pDomain)}`);
 
             p64 = url.searchParams.get('P64') || P64 || p64;
             p64Prefix = url.searchParams.get('P64PREFIX') || P64PREFIX || p64Prefix;
             p64Domain = kvData.kv_p64Domain || p64Domain;
+            log(`[fetch]--> p64Domain = ${JSON.stringify(p64Domain)}`);
 
             s5 = url.searchParams.get('S5') || S5 || s5;
             parsedS5 = await requestParserFromUrl(s5, url);
@@ -234,31 +237,83 @@ function xorDe(b64, key) {
     return decoder.decode(out);
 }
 
-async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false) {
-    log(`[getDomainToRouteX]--> paddr = ${paddr}, p64Prefix = ${p64Prefix}, addressRemote = ${addressRemote}, p64 = ${p64}`);
+async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false, pDomain, p64Domain) {
     let finalTargetHost = addressRemote;
     let finalTargetPort = portRemote;
-    if (s5Enable) {
-        finalTargetHost = addressRemote;
-        finalTargetPort = portRemote;
-    } else if (pDomain.some(domain => matchesDomainPattern(addressRemote, domain))) {
-        finalTargetHost = paddr;
-        finalTargetPort = pnum || portRemote;
-    } else if (p64Domain.some(domain => matchesDomainPattern(addressRemote, domain)) || (p64Flag && p64)) {
-        try {
-            finalTargetHost = await resolveDomainToRouteX(addressRemote);
-            finalTargetPort = portRemote;
-        } catch (err) {
-            log(`[retry]--> resolveDomainToRouteX failed: ${err.message}`);
-            finalTargetHost = paddr || addressRemote;
+    try {
+        log(`[getDomainToRouteX]--> paddr=${paddr}, p64Prefix=${p64Prefix}, addressRemote=${addressRemote}, p64=${p64}`);
+        log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(pDomain)}, p64Domain=${JSON.stringify(p64Domain)}`);
+
+        const safeMatch = (domains, target) => {
+            try {
+                return Array.isArray(domains) && domains.some(domain => matchesDomainPattern(target, domain));
+            } catch (e) {
+                log(`[error]--> matchesDomainPattern failed: ${e.message}`);
+                return false;
+            }
+        };
+
+        const resultDomain = safeMatch(pDomain, addressRemote);
+        const result64Domain = safeMatch(p64Domain, addressRemote);
+        log(`[getDomainToRouteX]--> match pDomain=${resultDomain}, match p64Domain=${result64Domain}, p64Flag=${p64Flag}`);
+
+        if (s5Enable) {
+            log(`[getDomainToRouteX]--> s5Enable=true, use remote directly`);
+        } else if (resultDomain) {
+            finalTargetHost = paddr;
             finalTargetPort = pnum || portRemote;
+            log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalTargetHost}, port=${finalTargetPort}`);
+        } else if (result64Domain || (p64Flag && p64)) {
+            try {
+                finalTargetHost = await resolveDomainToRouteX(addressRemote);
+                finalTargetPort = portRemote;
+                log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalTargetHost}`);
+            } catch (err) {
+                log(`[retry]--> resolveDomainToRouteX failed: ${err.message}`);
+                finalTargetHost = paddr || addressRemote;
+                finalTargetPort = pnum || portRemote;
+            }
+        } else if (p64Flag) {
+            finalTargetHost = paddr || addressRemote;
+            finalTargetPort = portRemote;
+            log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
         }
-    } else if (p64Flag) {
-        finalTargetHost = paddr || addressRemote;
-        finalTargetPort = portRemote;
+
+        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
+        return { finalTargetHost, finalTargetPort };
+    } catch (err) {
+        log(`[fatal]--> getDomainToRouteX failed: ${err.message}`);
+        if (p64Flag) {
+            finalTargetHost = paddr || addressRemote;
+            finalTargetPort = portRemote;
+            log(`[fatal-fallback]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
+        }
+        return { finalTargetHost, finalTargetPort };
     }
-    log(`[getDomainToRouteX]--> Using finalTargetHost: ${finalTargetHost}, finalTargetPort: ${finalTargetPort}`);
-    return { finalTargetHost, finalTargetPort };
+}
+
+function matchesDomainPattern(hostname, pattern) {
+	if (!hostname || !pattern) return false;
+
+	hostname = hostname.toLowerCase();
+	pattern = pattern.toLowerCase();
+	const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+	const ipv6Regex = /^\[?([a-f0-9:]+)\]?$/i;
+	if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
+		return false;
+	}
+
+	const hostParts = hostname.split('.');
+	const patternParts = pattern.split('.');
+
+	if (hostParts.length < patternParts.length) return false;
+
+	for (let i = 1; i <= patternParts.length; i++) {
+		if (hostParts[hostParts.length - i] !== patternParts[patternParts.length - i]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 async function resolveDomainToRouteX(domain) {
