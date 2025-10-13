@@ -10,7 +10,7 @@ let id = atob('ZWM4NzJkOGYtNzJiMC00YTA0LWI2MTItMDMyN2Q4NWUxOGVk');
 let pnum = atob('NDQz');
 let paddrs = [
     atob('cHJveHlpcC5hbWNsdWJzLmNhbWR2ci5vcmc='),
-    atob('cHJveHlpcC5hbWNsdWJzLmtven93LmNvbQ==')
+    atob('cHJveHlpcC5hbWNsdWJzLmtvem93LmNvbQ==')
 ];
 let paddr = paddrs[Math.floor(Math.random() * paddrs.length)];
 let pDomain = [];
@@ -237,7 +237,7 @@ function xorDe(b64, key) {
     return decoder.decode(out);
 }
 
-async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false, pDomain, p64Domain) {
+async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false) {
     let finalTargetHost = addressRemote;
     let finalTargetPort = portRemote;
     try {
@@ -293,27 +293,27 @@ async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = 
 }
 
 function matchesDomainPattern(hostname, pattern) {
-	if (!hostname || !pattern) return false;
+    if (!hostname || !pattern) return false;
 
-	hostname = hostname.toLowerCase();
-	pattern = pattern.toLowerCase();
-	const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-	const ipv6Regex = /^\[?([a-f0-9:]+)\]?$/i;
-	if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
-		return false;
-	}
+    hostname = hostname.toLowerCase();
+    pattern = pattern.toLowerCase();
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^\[?([a-f0-9:]+)\]?$/i;
+    if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
+        return false;
+    }
 
-	const hostParts = hostname.split('.');
-	const patternParts = pattern.split('.');
+    const hostParts = hostname.split('.');
+    const patternParts = pattern.split('.');
 
-	if (hostParts.length < patternParts.length) return false;
+    if (hostParts.length < patternParts.length) return false;
 
-	for (let i = 1; i <= patternParts.length; i++) {
-		if (hostParts[hostParts.length - i] !== patternParts[patternParts.length - i]) {
-			return false;
-		}
-	}
-	return true;
+    for (let i = 1; i <= patternParts.length; i++) {
+        if (hostParts[hostParts.length - i] !== patternParts[patternParts.length - i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 async function resolveDomainToRouteX(domain) {
@@ -638,7 +638,8 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     async function retry() {
-        const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, s5Enable, true);
+        const finalTargetHost = paddr || addressRemote;
+        const finalTargetPort = pnum || portRemote;
         const tcpS = s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
         log(`[retry]--> s5:${s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
         tcpS.closed.catch(error => {
@@ -649,9 +650,49 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
         transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
     }
 
+    async function nat64() {
+        const finalTargetHost = await resolveDomainToRouteX(addressRemote);
+        const finalTargetPort = portRemote;
+        const tcpS = s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
+        log(`[nat64]--> s5:${s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
+        tcpS.closed.catch(error => {
+            log('[nat64]--> tcpS closed error', error);
+        }).finally(() => {
+            closeDataStream(pipe);
+        })
+        transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+    }
+
+    async function finalStep() {
+        try {
+            if (p64) {
+                log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
+                const ok = await tryOnce(nat64, 'nat64');
+                if (!ok) await tryOnce(retry, 'retry');
+            } else {
+                log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
+                const ok = await tryOnce(retry, 'retry');
+                if (!ok) await tryOnce(nat64, 'nat64');
+            }
+        } catch (err) {
+            log('[finalStep] error:', err);
+        }
+    }
+
+    async function tryOnce(fn, tag) {
+        try {
+            const ok = await fn();
+            log(`[finalStep] ${tag} finished normally`);
+            return true;
+        } catch (err) {
+            log(`[finalStep] ${tag} failed:`, err);
+            return false;
+        }
+    }
+
     const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, s5Enable, false);
     const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, s5Enable ? true : false);
-    transferDataStream(tcpS, pipe, channelResponseHeader, retry, log);
+    transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
 }
 
 async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, log) {
@@ -692,9 +733,9 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, l
             closeDataStream(pipe);
         });
 
-    if (hasIncomingData === false && retry) {
-        log(`retry`)
-        retry();
+    if (hasIncomingData === false && typeof retry === 'function') {
+        log(`[transferDataStream]--> no data, invoke retry flow`);
+        await retry();
     }
 }
 
