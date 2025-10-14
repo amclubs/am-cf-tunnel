@@ -1310,7 +1310,7 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, l
 
     if (hasIncomingData === false && typeof retry === 'function') {
         log(`[transferDataStream]--> no data, invoke retry flow`);
-        await retry();
+        retry();
     }
 }
 
