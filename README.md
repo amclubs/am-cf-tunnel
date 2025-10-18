@@ -122,7 +122,7 @@
 | D_URL | https://cloudflare-dns.com/dns-query |❌| DNS解析获取作用，小白勿用                                                           |  |
 
 ## 
-## 🧩六、节点订阅配置  [Vercel方式部署视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) [Cloudfare方式部署视频教程](https://youtu.be/f8ZTvv4u3Pw)
+## 🧩六、节点订阅配置  [Vercel部署视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) [Cloudfare部署视频教程](https://youtu.be/f8ZTvv4u3Pw)
 
 <details>
 <summary>点击展开/收起</summary>
