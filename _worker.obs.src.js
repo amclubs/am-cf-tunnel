@@ -98,7 +98,7 @@ export default {
                     return set_kv_data(request, env);
                 }
                 default: {
-                    return await login(request);
+                    return Response.redirect(new URL('/', request.url));
                 }
             }
         } catch (err) {
