@@ -243,7 +243,7 @@
 
 </details>
 
-变量说明 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=808s)
+🔧变量说明 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=808s)
 <details>
 <summary>点击展开/收起</summary>
 
