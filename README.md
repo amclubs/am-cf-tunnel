@@ -236,7 +236,7 @@
 
 ###  🌟推荐
 **【流量光】** 中转+专线高速机场 (**9.9元300G每月**) (**75元包年每月300G**) (**55元1000GB不限时**)✅畅爽晚高峰 解锁ChatGPT、全流媒体(送小火箭)
-</br>🌐官网：[https://llgjc1.com](https://llgjc1.com/#/register?code=bIUDEPTu)
+</br>🌐官网：[https://llgjc.org](https://llgjc.org/#/register?code=bIUDEPTu)
 
 # 
 <center>
