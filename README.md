@@ -132,7 +132,7 @@
    - 在 `Snippets`片段代码主页面的 右下角方点击 `+创建片段` 图标进入代码编辑页面 -> 在右上方创建片段 -> 填入 `片段名称`(此名称自己命名)。
    - 将 [_worker.js](https://github.com/amclubs/am-cf-tunnel/blob/main/snippets.js) 的内容粘贴到 `Snippets` 编辑器中 -> 修改第一行代码`id`变量值(默认登录密码(UUID)是：ec872d8f-72b0-4a04-b612-0327d85e18ed) 建议自己要修改 [在线获取UUID](https://1024tools.com/uuid)。
    - 点击右上方 `片段规则` 图标 -> 选择 `自定义筛选表达式` -> 字段 选择 `主机名` -> 运算符 选择 `运算符` -> 值 填入 `Snippets进入的域名名称，再前面加多一节子域名名称`(子域名名称自己命名) 后 -> 点击 `完成`。(此步已有可忽略)
-   - 在 码编辑页面 右上角方点击 `部署`  即可。
+   - 在 码编辑页面 右上角方点击 `部署` -> 选择 `创建新代理 DNS 记录` -> 字段 `IPv4 地址（必填）` -> 查看下面显示 `使用 192.0.2.1 放弃请求` -> 显示IP值 填入后 -> 点击 `创建记录和部署规则`。
 3. 验证部署是否成功：
    - 访问 `https://[YOUR-Snippets-URL]` 即可进入登录页面,登录成功就是完成部署(默认登录密码(UUID)是：ec872d8f-72b0-4a04-b612-0327d85e18ed)。
    - 例如 `https://vless.amclubss.com` 然后进入登录页面 -> 输入密码 `ec872d8f-72b0-4a04-b612-0327d85e18ed` -> 点击登录 -> 成功登录。 
@@ -158,7 +158,7 @@
 访问 `http://部署域名` 即可。
 </details>
 
-#### `②` Cloudfare Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=165s)
+#### `②` Cloudfare Workers 部署方法 [视频教程](https://www.youtube.com/watch?v=D4XqeRNm2JI&t=501s)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -185,7 +185,7 @@
 
 </details>
 
-#### `③` Cloudfare Pages 上传 部署方法 **(最佳推荐!!!)** [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=1100s)
+#### `③` Cloudfare Pages 上传 部署方法 **(最佳推荐!!!)** [视频教程](https://www.youtube.com/watch?v=D4XqeRNm2JI&t=982s)
 <details>
 <summary>点击展开/收起</summary>
 
@@ -214,7 +214,7 @@
 
 </details>
 
-#### `④` Cloudfare Pages GitHub 部署方法 **(不推荐)** [视频教程](https://www.youtube.com/watch?v=dPH63nITA0M&t=654s)
+#### `④` Cloudfare Pages GitHub 部署方法 **(不推荐)** [视频教程](https://www.youtube.com/watch?v=f8ZTvv4u3Pw&t=137s)
 <details>
 <summary>点击展开/收起</summary>
    
