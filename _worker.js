@@ -7,15 +7,13 @@
 
 let id = atob('ZWM4NzJkOGYtNzJiMC00YTA0LWI2MTItMDMyN2Q4NWUxOGVk');
 
-let pnum = atob('NDQz');
 let paddrs = [
     atob('cHJveHlpcC5hbWNsdWJzLmNhbWR2ci5vcmc='),
     atob('cHJveHlpcC5hbWNsdWJzLmtvem93LmNvbQ==')
 ];
-let paddr = paddrs[Math.floor(Math.random() * paddrs.length)];
 let pDomain = [];
 
-let p64 = true;
+let p64 = false;
 let p64DnUrl = atob('aHR0cHM6Ly8xLjEuMS4xL2Rucy1xdWVyeQ==');
 let p64Prefix = atob('MjYwMjpmYzU5OmIwOjY0Ojo=');
 let p64Domain = [];
@@ -58,7 +56,9 @@ export default {
             id = (kvData.kv_id || ID || id).toLowerCase();
             log(`[fetch]--> id = ${id}`);
 
+            let paddr = paddrs[Math.floor(Math.random() * paddrs.length)];
             paddr = url.searchParams.get('PADDR') || PADDR || paddr;
+            let pnum = atob('NDQz');
             if (paddr) {
                 const [ip, port] = paddr.split(':');
                 paddr = ip;
@@ -86,9 +86,9 @@ export default {
 
             if (request.headers.get('Upgrade') === 'websocket') {
                 if (prType === xorDe(dataTypeTr, 'datatype')) {
-                    return await websvcExecutorTr(request);
+                    return await websvcExecutorTr(request, paddr, pnum);
                 }
-                return await websvcExecutor(request);
+                return await websvcExecutor(request, paddr, pnum);
             }
             switch (url.pathname.toLowerCase()) {
                 case '/': {
@@ -240,7 +240,7 @@ function xorDe(b64, key) {
     return decoder.decode(out);
 }
 
-async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false) {
+async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false, paddr, pnum) {
     let finalTargetHost = addressRemote;
     let finalTargetPort = portRemote;
     try {
@@ -1017,7 +1017,7 @@ async function show_kv_page(env) {
 /** -------------------websvc logic-------------------------------- */
 const WS_READY_STATE_OPEN = 1;
 const WS_READY_STATE_CLOSING = 2;
-async function websvcExecutor(request) {
+async function websvcExecutor(request, paddr, pnum) {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
     webSocket.accept();
@@ -1086,7 +1086,7 @@ async function websvcExecutor(request) {
                 return;
             }
 
-            handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType);
+            handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, paddr, pnum);
         },
         close() {
             log(`readableWebSocketStream is close`);
@@ -1104,7 +1104,7 @@ async function websvcExecutor(request) {
     });
 }
 
-async function websvcExecutorTr(request) {
+async function websvcExecutorTr(request, paddr, pnum) {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
     webSocket.accept();
@@ -1140,7 +1140,7 @@ async function websvcExecutorTr(request) {
             throw new Error(message);
         }
 
-        handleTPOut(remoteSocketWrapper, addressRemote, portRemote, rawClientData, webSocket, null, log, addressType);
+        handleTPOut(remoteSocketWrapper, addressRemote, portRemote, rawClientData, webSocket, null, log, addressType, paddr, pnum);
     };
 
     readableWebSocketStream.pipeTo(
@@ -1200,7 +1200,7 @@ function websvcStream(pipeServer, earlyDataHeader, log) {
     return stream;
 }
 
-async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType) {
+async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType, paddr, pnum) {
 
     async function connectAndWrite(address, port, socks = false) {
         const tcpS = socks ? await serviceCall(addressType, address, port, log) : connect({ hostname: address, port: port, servername: addressRemote });
@@ -1265,7 +1265,7 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
         }
     }
 
-    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, s5Enable, false);
+    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, s5Enable, false, paddr, pnum);
     const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, s5Enable ? true : false);
     transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
 }
