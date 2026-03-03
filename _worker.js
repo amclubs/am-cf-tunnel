@@ -1077,23 +1077,23 @@ async function websvcExecutor(request, config) {
                 throw new Error(message);
             }
 
-            if (isUDP && portRemote !== 53) {
-                throw new Error('UDP proxy only enabled for DNS which is port 53');
-            }
+            // if (isUDP && portRemote !== 53) {
+            //     throw new Error('UDP proxy only enabled for DNS which is port 53');
+            // }
 
-            if (isUDP && portRemote === 53) {
-                isDns = true;
-            }
+            // if (isUDP && portRemote === 53) {
+            //     isDns = true;
+            // }
 
             const channelResponseHeader = new Uint8Array([channelVersion[0], 0]);
             const rawClientData = chunk.slice(rawDataIndex);
 
-            if (isDns) {
-                const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
-                udpStreamWrite = write;
-                udpStreamWrite(rawClientData);
-                return;
-            }
+            // if (isDns) {
+            //     const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
+            //     udpStreamWrite = write;
+            //     udpStreamWrite(rawClientData);
+            //     return;
+            // }
 
             handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
         },
