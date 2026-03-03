@@ -1061,7 +1061,7 @@ async function websvcExecutor(request, config) {
 
             const {
                 hasError,
-                //message,
+                message,
                 portRemote = 443,
                 addressRemote = '',
                 rawDataIndex,
@@ -1071,7 +1071,7 @@ async function websvcExecutor(request, config) {
             } = handleRequestHeader(chunk, id);
             address = addressRemote;
             portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
-            log(`handleRequestHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote}`);
+            log(`handleRequestHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote} portWithRandomLog:${portWithRandomLog}`);
 
             if (hasError) {
                 throw new Error(message);
@@ -1089,7 +1089,7 @@ async function websvcExecutor(request, config) {
             const rawClientData = chunk.slice(rawDataIndex);
 
             if (isDns) {
-                const { write } = await handleUPOut(webSocket, channelResponseHeader, log);
+                const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
                 udpStreamWrite = write;
                 udpStreamWrite(rawClientData);
                 return;
@@ -1349,7 +1349,7 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, onNoData
     return hasIncomingData;
 }
 
-async function handleUPOut(pipe, channelResponseHeader, log) {
+async function handleUPOut(pipe, channelResponseHeader, config) {
     let ischannelHeaderSent = false;
     const transformStream = new TransformStream({
         start(controller) {
@@ -1372,7 +1372,7 @@ async function handleUPOut(pipe, channelResponseHeader, log) {
 
     transformStream.readable.pipeTo(new WritableStream({
         async write(chunk) {
-            const resp = await fetch(durl, // dns server url
+            const resp = await fetch(config.durl, // dns server url
                 {
                     method: 'POST',
                     headers: {
@@ -1575,6 +1575,7 @@ function handleRequestHeader(channelBuffer, id) {
 
     return {
         hasError: false,
+        message: null,
         addressRemote: addressValue,
         portRemote,
         rawDataIndex: addressValueIndex + addressLength,
@@ -1671,6 +1672,7 @@ async function handleRequestHeaderTr(buffer, id) {
     const portRemote = new DataView(portBuffer).getUint16(0);
     return {
         hasError: false,
+        message: null,
         addressRemote: address,
         portRemote,
         rawClientData: s5DataBuffer.slice(portIndex + 4),
