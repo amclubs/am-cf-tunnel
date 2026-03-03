@@ -248,12 +248,23 @@ function xorDe(b64, key) {
     return decoder.decode(out);
 }
 
+function isIpAddress(str) {
+    const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6 = /^[0-9a-fA-F:]+$/;
+    return ipv4.test(str) || ipv6.test(str);
+}
+
 async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, config) {
     let finalTargetHost = addressRemote;
     let finalTargetPort = portRemote;
     try {
         log(`[getDomainToRouteX]--> paddr=${config.paddr}, p64Prefix=${config.p64Prefix}, addressRemote=${addressRemote}, p64=${config.p64}`);
         log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(config.pDomain)}, p64Domain=${JSON.stringify(config.p64Domain)}`);
+
+        if (isIpAddress(addressRemote)) {
+            log(`[getDomainToRouteX] Skip DNS resolve because target is IP`);
+            return { finalTargetHost, finalTargetPort };
+        }
 
         const safeMatch = (domains, target) => {
             try {
@@ -1077,23 +1088,23 @@ async function websvcExecutor(request, config) {
                 throw new Error(message);
             }
 
-            // if (isUDP && portRemote !== 53) {
-            //     throw new Error('UDP proxy only enabled for DNS which is port 53');
-            // }
+            if (isUDP && portRemote !== 53) {
+                throw new Error('UDP proxy only enabled for DNS which is port 53');
+            }
 
-            // if (isUDP && portRemote === 53) {
-            //     isDns = true;
-            // }
+            if (isUDP && portRemote === 53) {
+                isDns = true;
+            }
 
             const channelResponseHeader = new Uint8Array([channelVersion[0], 0]);
             const rawClientData = chunk.slice(rawDataIndex);
 
-            // if (isDns) {
-            //     const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
-            //     udpStreamWrite = write;
-            //     udpStreamWrite(rawClientData);
-            //     return;
-            // }
+            if (isDns) {
+                const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
+                udpStreamWrite = write;
+                udpStreamWrite(rawClientData);
+                return;
+            }
 
             handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
         },
@@ -1393,8 +1404,8 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
                 }
             }
         }
-    })).catch((error) => {
-        error('dns udp has error' + error)
+    })).catch((err) => {
+        error('dns udp has error' + err)
     });
 
     const writer = transformStream.writable.getWriter();
