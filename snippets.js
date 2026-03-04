@@ -257,7 +257,7 @@ function convertToRouteX(ipv4Address, config) {
         }
         return num.toString(16).padStart(2, '0');
     });
-    let withBrackets = true
+    let withBrackets = true;
     if (!config.p64Prefix || typeof config.p64Prefix !== 'string' || !config.p64Prefix.includes('::')) {
         throw new Error('[convertToRouteX] Invalid manual prefix; must be a valid IPv6 prefix');
     }
@@ -464,10 +464,9 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, onNoData
                 }
             }
         })
-    ).then(() => hasIncomingData)
-        .catch(err => {
-            return hasIncomingData;
-        });
+    ).then(() => hasIncomingData).catch(err => {
+        return hasIncomingData;
+    });
     hasIncomingData = await Promise.race([pipePromise, timeoutPromise]);
     if (!hasIncomingData && typeof onNoData === "function") {
         await onNoData();
