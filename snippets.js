@@ -54,7 +54,7 @@ async function resolveConfig(url) {
         pnum = port || pnum;
     }
     const rawP64 = url.searchParams.get('P64') ?? p64Defaul;
-    const s5 = url.searchParams.get('S5') ?? s5Defaul
+    const s5 = url.searchParams.get('S5') ?? s5Defaul;
     const parsedS5 = (await requestParserFromUrl(s5, url)) ?? parsedS5Defaul;
     const s5Enable = parsedS5 && Object.keys(parsedS5).length > 0;
     let prType = url.searchParams.get(atob('UFJPVF9UWVBF'));
