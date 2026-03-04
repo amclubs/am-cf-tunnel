@@ -7,24 +7,24 @@
 
 let id = atob('ZWM4NzJkOGYtNzJiMC00YTA0LWI2MTItMDMyN2Q4NWUxOGVk');
 
-let pnum = atob('NDQz');
 let paddrs = [
     atob('cHJveHlpcC5hbWNsdWJzLmNhbWR2ci5vcmc='),
     atob('cHJveHlpcC5hbWNsdWJzLmtvem93LmNvbQ==')
 ];
-let paddr = paddrs[Math.floor(Math.random() * paddrs.length)];
-let pDomain = [];
+let paddrDefaul = paddrs[Math.floor(Math.random() * paddrs.length)];
+let pnumDefaul = atob('NDQz');
+let pDomainDefaul = [];
 
-let p64 = true;
+let p64Defaul = false;
 let p64DnUrl = atob('aHR0cHM6Ly8xLjEuMS4xL2Rucy1xdWVyeQ==');
-let p64Prefix = atob('MjYwMjpmYzU5OmIwOjY0Ojo=');
-let p64Domain = [];
+let p64PrefixDefaul = atob('MjYwMjpmYzU5OmIwOjY0Ojo=');
+let p64DomainDefaul = [];
 
-let s5 = '';
-let s5Enable = false;
-let parsedS5 = {};
+let s5Defaul = '';
+let s5EnableDefaul = false;
+let parsedS5Defaul = {};
 
-let durl = atob('aHR0cHM6Ly9za3kucmV0aGlua2Rucy5jb20vMTotUGZfX19fXzlfOEFfQU1BSWdFOGtNQUJWRERtS09IVEFLZz0=');
+let durlDefaul = atob('aHR0cHM6Ly9za3kucmV0aGlua2Rucy5jb20vMTotUGZfX19fXzlfOEFfQU1BSWdFOGtNQUJWRERtS09IVEFLZz0=');
 let fname = atob('5pWw5a2X5aWX5Yip');
 const dataTypeTr = 'EBMbCxUX';
 let enableLog = false;
@@ -45,47 +45,23 @@ export default {
     async fetch(request, env, ctx) {
         try {
             let { ID, PADDR, P64, P64PREFIX, S5, D_URL, ENABLE_LOG } = env;
-
             const kvCheckResponse = await check_kv(env);
             let kvData = {};
             if (!kvCheckResponse) {
                 kvData = await get_kv(env) || {};
                 log(`[fetch]--> kv_id = ${kvData.kv_id}, kv_pDomain = ${JSON.stringify(kvData.pDomain)}, kv_p64Domain = ${JSON.stringify(kvData.kv_p64Domain)}`);
             }
-
             const url = new URL(request.url);
             enableLog = url.searchParams.get('ENABLE_LOG') || ENABLE_LOG || enableLog;
             id = (kvData.kv_id || ID || id).toLowerCase();
             log(`[fetch]--> id = ${id}`);
-
-            paddr = url.searchParams.get('PADDR') || PADDR || paddr;
-            if (paddr) {
-                const [ip, port] = paddr.split(':');
-                paddr = ip;
-                pnum = port || pnum;
-            }
-            pDomain = kvData.kv_pDomain || pDomain;
-            log(`[fetch]--> pDomain = ${JSON.stringify(pDomain)}`);
-
-            p64 = url.searchParams.get('P64') || P64 || p64;
-            p64Prefix = url.searchParams.get('P64PREFIX') || P64PREFIX || p64Prefix;
-            p64Domain = kvData.kv_p64Domain || p64Domain;
-            log(`[fetch]--> p64Domain = ${JSON.stringify(p64Domain)}`);
-
-            s5 = url.searchParams.get('S5') || S5 || s5;
-            parsedS5 = await requestParserFromUrl(s5, url);
-            if (parsedS5) {
-                s5Enable = true;
-            }
-
-            durl = url.searchParams.get('D_URL') || D_URL || durl;
-            let prType = url.searchParams.get(atob('UFJPVF9UWVBF'));
-            if (prType) {
-                prType = prType.toLowerCase();
-            }
+            const config = await resolveConfig(request, env, kvData);
 
             if (request.headers.get('Upgrade') === 'websocket') {
-                return await websvcExecutor(request);
+                if (config.prType === xorDe(dataTypeTr, 'datatype')) {
+                    return await websvcExecutorTr(request, config);
+                }
+                return await websvcExecutor(request, config);
             }
             switch (url.pathname.toLowerCase()) {
                 case '/': {
@@ -110,6 +86,41 @@ export default {
 
 
 /** ---------------------tools------------------------------ */
+async function resolveConfig(request, env, kvData) {
+    const url = new URL(request.url);
+    let paddr = url.searchParams.get('PADDR') ?? env.PADDR ?? paddrDefaul;
+    let pnum = pnumDefaul;
+    if (paddr) {
+        const [ip, port] = paddr.split(':');
+        paddr = ip;
+        pnum = port || pnum;
+    }
+    const rawP64 = url.searchParams.get('P64') ?? env.P64 ?? p64Defaul;
+    const s5 = url.searchParams.get('S5') ?? env.S5 ?? s5Defaul;
+    const parsedS5 = (await requestParserFromUrl(s5, url)) ?? parsedS5Defaul;
+    const s5Enable = parsedS5 && Object.keys(parsedS5).length > 0;
+    let prType = url.searchParams.get(atob('UFJPVF9UWVBF'));
+    if (prType) {
+        prType = prType.toLowerCase();
+    }
+
+    const config = {
+        paddr,
+        pnum,
+        pDomain: kvData.kv_pDomain ?? pDomainDefaul,
+        p64: String(rawP64).toLowerCase() === 'true',
+        p64Prefix: url.searchParams.get('P64PREFIX') ?? env.P64PREFIX ?? p64PrefixDefaul,
+        p64Domain: kvData.kv_p64Domain ?? p64DomainDefaul,
+        s5,
+        parsedS5,
+        s5Enable,
+        durl: url.searchParams.get('D_URL') ?? env.D_URL ?? durlDefaul,
+        prType
+    };
+    log(`[config]-->[${Date.now()}]`, JSON.stringify(config));
+    return config;
+}
+
 function log(...args) {
     if (enableLog) console.log(...args);
 }
@@ -237,12 +248,23 @@ function xorDe(b64, key) {
     return decoder.decode(out);
 }
 
-async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = false) {
+function isIpAddress(str) {
+    const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6 = /^[0-9a-fA-F:]+$/;
+    return ipv4.test(str) || ipv6.test(str);
+}
+
+async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, config) {
     let finalTargetHost = addressRemote;
     let finalTargetPort = portRemote;
     try {
-        log(`[getDomainToRouteX]--> paddr=${paddr}, p64Prefix=${p64Prefix}, addressRemote=${addressRemote}, p64=${p64}`);
-        log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(pDomain)}, p64Domain=${JSON.stringify(p64Domain)}`);
+        log(`[getDomainToRouteX]--> paddr=${config.paddr}, p64Prefix=${config.p64Prefix}, addressRemote=${addressRemote}, p64=${config.p64}`);
+        log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(config.pDomain)}, p64Domain=${JSON.stringify(config.p64Domain)}`);
+
+        if (isIpAddress(addressRemote)) {
+            log(`[getDomainToRouteX] Skip DNS resolve because target is IP`);
+            return { finalTargetHost, finalTargetPort };
+        }
 
         const safeMatch = (domains, target) => {
             try {
@@ -253,28 +275,28 @@ async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = 
             }
         };
 
-        const resultDomain = safeMatch(pDomain, addressRemote);
-        const result64Domain = safeMatch(p64Domain, addressRemote);
+        const resultDomain = safeMatch(config.pDomain, addressRemote);
+        const result64Domain = safeMatch(config.p64Domain, addressRemote);
         log(`[getDomainToRouteX]--> match pDomain=${resultDomain}, match p64Domain=${result64Domain}, p64Flag=${p64Flag}`);
 
-        if (s5Enable) {
+        if (config.s5Enable) {
             log(`[getDomainToRouteX]--> s5Enable=true, use remote directly`);
         } else if (resultDomain) {
-            finalTargetHost = paddr;
-            finalTargetPort = pnum || portRemote;
+            finalTargetHost = config.paddr;
+            finalTargetPort = config.pnum || portRemote;
             log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalTargetHost}, port=${finalTargetPort}`);
-        } else if (result64Domain || (p64Flag && p64)) {
+        } else if (result64Domain || (p64Flag && config.p64)) {
             try {
-                finalTargetHost = await resolveDomainToRouteX(addressRemote);
+                finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
                 finalTargetPort = portRemote;
                 log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalTargetHost}`);
             } catch (err) {
                 log(`[retry]--> resolveDomainToRouteX failed: ${err.message}`);
-                finalTargetHost = paddr || addressRemote;
-                finalTargetPort = pnum || portRemote;
+                finalTargetHost = config.paddr || addressRemote;
+                finalTargetPort = config.pnum || portRemote;
             }
         } else if (p64Flag) {
-            finalTargetHost = paddr || addressRemote;
+            finalTargetHost = config.paddr || addressRemote;
             finalTargetPort = portRemote;
             log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
         }
@@ -284,10 +306,11 @@ async function getDomainToRouteX(addressRemote, portRemote, s5Enable, p64Flag = 
     } catch (err) {
         log(`[fatal]--> getDomainToRouteX failed: ${err.message}`);
         if (p64Flag) {
-            finalTargetHost = paddr || addressRemote;
+            finalTargetHost = config.paddr || addressRemote;
             finalTargetPort = portRemote;
             log(`[fatal-fallback]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
         }
+        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
         return { finalTargetHost, finalTargetPort };
     }
 }
@@ -316,7 +339,7 @@ function matchesDomainPattern(hostname, pattern) {
     return true;
 }
 
-async function resolveDomainToRouteX(domain) {
+async function resolveDomainToRouteX(domain, config) {
     try {
         log(`[resolveDomainToRouteX] Starting domain resolution: ${domain}`);
         const response = await fetch(`${p64DnUrl}?name=${domain}&type=A`, {
@@ -336,7 +359,7 @@ async function resolveDomainToRouteX(domain) {
         }
         const ipv4 = aRecord.data;
         log(`[resolveDomainToRouteX] Found IPv4 address: ${ipv4}`);
-        const ipv6 = convertToRouteX(ipv4);
+        const ipv6 = convertToRouteX(ipv4, config);
         log(`[resolveDomainToRouteX] Converted IPv6 address: ${ipv6}`);
         return ipv6;
     } catch (err) {
@@ -345,7 +368,7 @@ async function resolveDomainToRouteX(domain) {
     }
 }
 
-function convertToRouteX(ipv4Address) {
+function convertToRouteX(ipv4Address, config) {
     const parts = ipv4Address.trim().split('.');
     if (parts.length !== 4) {
         throw new Error('Invalid IPv4 address');
@@ -358,13 +381,13 @@ function convertToRouteX(ipv4Address) {
         return num.toString(16).padStart(2, '0');
     });
 
-    let withBrackets = true
-    log(`[convertToRouteX] p64Prefix--->: ${p64Prefix}`);
-    if (!p64Prefix || typeof p64Prefix !== 'string' || !p64Prefix.includes('::')) {
+    let withBrackets = true;
+    log(`[convertToRouteX] p64Prefix--->: ${config.p64Prefix}`);
+    if (!config.p64Prefix || typeof config.p64Prefix !== 'string' || !config.p64Prefix.includes('::')) {
         throw new Error('[convertToRouteX] Invalid manual prefix; must be a valid IPv6 prefix');
     }
     const ipv6Tail = `${hexParts[0]}${hexParts[1]}:${hexParts[2]}${hexParts[3]}`.toLowerCase();
-    const fullIPv6 = `${p64Prefix}${ipv6Tail}`;
+    const fullIPv6 = `${config.p64Prefix}${ipv6Tail}`;
     return withBrackets ? `[${fullIPv6}]` : fullIPv6;
 }
 
@@ -496,7 +519,7 @@ async function show_kv_page(env) {
 /** -------------------websvc logic-------------------------------- */
 const WS_READY_STATE_OPEN = 1;
 const WS_READY_STATE_CLOSING = 2;
-async function websvcExecutor(request) {
+async function websvcExecutor(request, config) {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
     webSocket.accept();
@@ -531,7 +554,7 @@ async function websvcExecutor(request) {
 
             const {
                 hasError,
-                //message,
+                message,
                 portRemote = 443,
                 addressRemote = '',
                 rawDataIndex,
@@ -541,7 +564,7 @@ async function websvcExecutor(request) {
             } = handleRequestHeader(chunk, id);
             address = addressRemote;
             portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
-            log(`handleRequestHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote}`);
+            log(`handleRequestHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote} portWithRandomLog:${portWithRandomLog}`);
 
             if (hasError) {
                 throw new Error(message);
@@ -559,13 +582,13 @@ async function websvcExecutor(request) {
             const rawClientData = chunk.slice(rawDataIndex);
 
             if (isDns) {
-                const { write } = await handleUPOut(webSocket, channelResponseHeader, log);
+                const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
                 udpStreamWrite = write;
                 udpStreamWrite(rawClientData);
                 return;
             }
 
-            handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType);
+            handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
         },
         close() {
             log(`readableWebSocketStream is close`);
@@ -582,8 +605,6 @@ async function websvcExecutor(request) {
         webSocket: client,
     });
 }
-
-
 
 function websvcStream(pipeServer, earlyDataHeader, log) {
     let readableStreamCancel = false;
@@ -625,12 +646,22 @@ function websvcStream(pipeServer, earlyDataHeader, log) {
     return stream;
 }
 
-async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType) {
+async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType, config) {
+    let failoverTriggered = false;
 
     async function connectAndWrite(address, port, socks = false) {
-        const tcpS = socks ? await serviceCall(addressType, address, port, log) : connect({ hostname: address, port: port, servername: addressRemote });
+        const tcpS = socks ? await serviceCall(addressType, address, port, config) : connect({ hostname: address, port: port, servername: addressRemote });
         remoteS.value = tcpS;
         log(`[connectAndWrite]--> s5:${socks} connected to ${address}:${port}`);
+        try {
+            if (tcpS.remoteAddress) {
+                log(`[connectAndWrite]--> real connected IP: ${tcpS.remoteAddress}:${tcpS.remotePort}`);
+            } else {
+                log(`[connectAndWrite]--> remoteAddress not available (runtime limitation)`);
+            }
+        } catch (e) {
+            log(`[connectAndWrite]--> cannot read remoteAddress: ${e.message}`);
+        }
         const writer = tcpS.writable.getWriter();
         await writer.write(rawClientData);
         writer.releaseLock();
@@ -638,108 +669,124 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     async function retry() {
-        const finalTargetHost = paddr || addressRemote;
-        const finalTargetPort = pnum || portRemote;
-        const tcpS = s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[retry]--> s5:${s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
-        tcpS.closed.catch(error => {
-            log('[retry]--> tcpS closed error', error);
-        }).finally(() => {
-            closeDataStream(pipe);
-        })
-        transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+        const finalTargetHost = config.paddr || addressRemote;
+        const finalTargetPort = config.pnum || portRemote;
+        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
+        log(`[retry]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
+        // tcpS.closed.catch(error => {
+        //     log('[retry]--> tcpS closed error', error);
+        // }).finally(() => {
+        //     closeDataStream(pipe);
+        // })
+        const hasData = await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+        log(`[retry] hasData →  ${hasData} `);
+        return hasData;
     }
 
     async function nat64() {
-        const finalTargetHost = await resolveDomainToRouteX(addressRemote);
+        const finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
         const finalTargetPort = portRemote;
-        const tcpS = s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[nat64]--> s5:${s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
-        tcpS.closed.catch(error => {
-            log('[nat64]--> tcpS closed error', error);
-        }).finally(() => {
-            closeDataStream(pipe);
-        })
-        transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
-    }
-
-    async function finalStep() {
-        try {
-            if (p64) {
-                log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
-                const ok = await tryOnce(nat64, 'nat64');
-                if (!ok) await tryOnce(retry, 'retry');
-            } else {
-                log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
-                const ok = await tryOnce(retry, 'retry');
-                if (!ok) await tryOnce(nat64, 'nat64');
-            }
-        } catch (err) {
-            log('[finalStep] error:', err);
-        }
+        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
+        log(`[nat64]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
+        // tcpS.closed.catch(error => {
+        //     log('[nat64]--> tcpS closed error', error);
+        // }).finally(() => {
+        //     closeDataStream(pipe);
+        // })
+        const hasData = await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+        log(`[nat64] hasData →  ${hasData} `);
+        return hasData;
     }
 
     async function tryOnce(fn, tag) {
         try {
             const ok = await fn();
-            log(`[finalStep] ${tag} finished normally`);
-            return true;
+            const result = Boolean(ok);
+            log(`[finalStep] tryOnce ${tag} result:${result}`);
+            return result;
         } catch (err) {
-            log(`[finalStep] ${tag} failed:`, err);
+            log(`[finalStep] tryOnce ${tag} failed:`, err);
             return false;
         }
     }
 
-    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, s5Enable, false);
-    const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, s5Enable ? true : false);
-    transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
+    async function finalStep() {
+        if (failoverTriggered) return;
+        failoverTriggered = true;
+        let success = false;
+        try {
+            if (config.p64) {
+                log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
+                success = await tryOnce(nat64, 'nat64');
+                log(`[finalStep] p64=true → success ${success} `);
+                if (!success) {
+                    success = await tryOnce(retry, 'retry');
+                    log(`[finalStep] p64=true → retry success ${success} `);
+                }
+            } else {
+                log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
+                success = await tryOnce(retry, 'retry');
+                log(`[finalStep] p64=false → success ${success} `);
+                if (!success) {
+                    success = await tryOnce(nat64, 'nat64');
+                    log(`[finalStep] p64=false → nat64 success ${success} `);
+                }
+            }
+        } catch (err) {
+            log('[finalStep] error:', err);
+        }
+        log(`[finalStep] final → success ${success} `);
+        if (!success) {
+            log("all routes failed → closing pipe");
+            closeDataStream(pipe);
+        }
+    }
+
+    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, false, config);
+    log(`[handleTPOut]--> route decision finalTargetHost=${finalTargetHost}, finalTargetPort=${finalTargetPort}`);
+    const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, config.s5Enable ? true : false);
+    transferDataStream(tcpS, pipe, channelResponseHeader, async () => { await finalStep(); }, log);
 }
 
-async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, log) {
-    let remoteChunkCount = 0;
-    let chunks = [];
-    let channelHeader = channelResponseHeader;
+async function transferDataStream(remoteS, pipe, channelResponseHeader, onNoData, log, firstPacketTimeout = 3000) {
     let hasIncomingData = false;
-    await remoteS.readable
-        .pipeTo(
-            new WritableStream({
-                start() {
-                },
-                async write(chunk, controller) {
-                    hasIncomingData = true;
-                    remoteChunkCount++;
-                    if (pipe.readyState !== WS_READY_STATE_OPEN) {
-                        controller.error(
-                            '[transferDataStream]--> pipe.readyState is not open, maybe close'
-                        );
-                    }
-                    if (channelHeader) {
-                        pipe.send(await new Blob([channelHeader, chunk]).arrayBuffer());
-                        channelHeader = null;
-                    } else {
-                        pipe.send(chunk);
-                    }
-                },
-                close() {
-                    log(`[transferDataStream]--> serviceCallion!.readable is close with hasIncomingData is ${hasIncomingData}`);
-                },
-                abort(reason) {
-                    console.error(`[transferDataStream]--> serviceCallion!.readable abort`, reason);
-                },
-            })
-        )
-        .catch((error) => {
-            console.error(`[transferDataStream]--> transferDataStream has exception `, error.stack || error);
-            closeDataStream(pipe);
+    let channelHeader = channelResponseHeader;
+    const timeoutPromise = new Promise(resolve => {
+        setTimeout(() => {
+            if (!hasIncomingData) resolve(false);
+        }, firstPacketTimeout);
+    });
+    const pipePromise = remoteS.readable.pipeTo(
+        new WritableStream({
+            async write(chunk) {
+                hasIncomingData = true;
+                if (pipe.readyState !== WS_READY_STATE_OPEN) {
+                    throw new Error("pipe not open");
+                }
+                if (channelHeader) {
+                    pipe.send(await new Blob([channelHeader, chunk]).arrayBuffer());
+                    channelHeader = null;
+                } else {
+                    pipe.send(chunk);
+                }
+            }
+        })
+    ).then(() => hasIncomingData)
+        .catch(err => {
+            log('[transferDataStream] pipeTo error', err);
+            return hasIncomingData;
         });
 
-    if (hasIncomingData === false && typeof retry === 'function') {
-        log(`[transferDataStream]--> no data, invoke retry flow`);
-        await retry();
+    hasIncomingData = await Promise.race([pipePromise, timeoutPromise]);
+    log(`[transferDataStream] close, hasIncomingData=${hasIncomingData}`);
+    if (!hasIncomingData && typeof onNoData === "function") {
+        log(`[transferDataStream] no data → trigger failover`);
+        await onNoData();
     }
+    return hasIncomingData;
 }
 
-async function handleUPOut(pipe, channelResponseHeader, log) {
+async function handleUPOut(pipe, channelResponseHeader, config) {
     let ischannelHeaderSent = false;
     const transformStream = new TransformStream({
         start(controller) {
@@ -762,7 +809,7 @@ async function handleUPOut(pipe, channelResponseHeader, log) {
 
     transformStream.readable.pipeTo(new WritableStream({
         async write(chunk) {
-            const resp = await fetch(durl, // dns server url
+            const resp = await fetch(config.durl, // dns server url
                 {
                     method: 'POST',
                     headers: {
@@ -783,8 +830,8 @@ async function handleUPOut(pipe, channelResponseHeader, log) {
                 }
             }
         }
-    })).catch((error) => {
-        error('dns udp has error' + error)
+    })).catch((err) => {
+        error('dns udp has error' + err)
     });
 
     const writer = transformStream.writable.getWriter();
@@ -800,8 +847,8 @@ async function handleUPOut(pipe, channelResponseHeader, log) {
     };
 }
 
-async function serviceCall(ipType, remoteIp, remotePort, log) {
-    const { username, password, hostname, port } = parsedS5;
+async function serviceCall(ipType, remoteIp, remotePort, config) {
+    const { username, password, hostname, port } = config.parsedS5;
     const socket = connect({ hostname, port });
     const writer = socket.writable.getWriter();
     const reader = socket.readable.getReader();
@@ -860,8 +907,8 @@ async function serviceCall(ipType, remoteIp, remotePort, log) {
         await sendSocksGreeting();
         await handleAuthResponse();
         await sendSocksRequest();
-    } catch (error) {
-        error(error.message);
+    } catch (err) {
+        error(err.message);
         return null;
     } finally {
         writer.releaseLock();
@@ -965,106 +1012,13 @@ function handleRequestHeader(channelBuffer, id) {
 
     return {
         hasError: false,
+        message: null,
         addressRemote: addressValue,
         portRemote,
         rawDataIndex: addressValueIndex + addressLength,
         channelVersion: version,
         isUDP,
         addressType,
-    };
-}
-
-async function handleRequestHeaderTr(buffer, id) {
-    if (buffer.byteLength < 56) {
-        return {
-            hasError: true,
-            message: "invalid data"
-        };
-    }
-    let crLfIndex = 56;
-    if (new Uint8Array(buffer.slice(56, 57))[0] !== 0x0d || new Uint8Array(buffer.slice(57, 58))[0] !== 0x0a) {
-        return {
-            hasError: true,
-            message: "invalid header format (missing CR LF)"
-        };
-    }
-    const password = new TextDecoder().decode(buffer.slice(0, crLfIndex));
-    if (password !== sha256.sha224(id)) {
-        return {
-            hasError: true,
-            message: "invalid password"
-        };
-    }
-
-    const s5DataBuffer = buffer.slice(crLfIndex + 2);
-    if (s5DataBuffer.byteLength < 6) {
-        return {
-            hasError: true,
-            message: "invalid S5 request data"
-        };
-    }
-
-    const view = new DataView(s5DataBuffer);
-    const cmd = view.getUint8(0);
-    if (cmd !== 1) {
-        return {
-            hasError: true,
-            message: "unsupported command, only TCP (CONNECT) is allowed"
-        };
-    }
-
-    const addressType = view.getUint8(1);
-    let addressLength = 0;
-    let addressIndex = 2;
-    let address = "";
-    switch (addressType) {
-        case 1:
-            addressLength = 4;
-            address = new Uint8Array(
-                s5DataBuffer.slice(addressIndex, addressIndex + addressLength)
-            ).join(".");
-            break;
-        case 3:
-            addressLength = new Uint8Array(
-                s5DataBuffer.slice(addressIndex, addressIndex + 1)
-            )[0];
-            addressIndex += 1;
-            address = new TextDecoder().decode(
-                s5DataBuffer.slice(addressIndex, addressIndex + addressLength)
-            );
-            break;
-        case 4:
-            addressLength = 16;
-            const dataView = new DataView(s5DataBuffer.slice(addressIndex, addressIndex + addressLength));
-            const ipv6 = [];
-            for (let i = 0; i < 8; i++) {
-                ipv6.push(dataView.getUint16(i * 2).toString(16));
-            }
-            address = ipv6.join(":");
-            break;
-        default:
-            return {
-                hasError: true,
-                message: `invalid addressType is ${addressType}`
-            };
-    }
-
-    if (!address) {
-        return {
-            hasError: true,
-            message: `address is empty, addressType is ${addressType}`
-        };
-    }
-
-    const portIndex = addressIndex + addressLength;
-    const portBuffer = s5DataBuffer.slice(portIndex, portIndex + 2);
-    const portRemote = new DataView(portBuffer).getUint16(0);
-    return {
-        hasError: false,
-        addressRemote: address,
-        portRemote,
-        rawClientData: s5DataBuffer.slice(portIndex + 4),
-        addressType: addressType
     };
 }
 
@@ -1077,7 +1031,6 @@ function closeDataStream(socket) {
         console.error('closeDataStream error', error);
     }
 }
-
 
 /** -------------------home page-------------------------------- */
 async function login(request, env) {
