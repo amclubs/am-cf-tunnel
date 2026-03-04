@@ -291,7 +291,7 @@ async function websvcExecutor(request, config) {
     let address = '';
     let portWithRandomLog = '';
     let currentDate = new Date();
-    const log = (event) => {
+    const log = (/** @type {string} */ info, /** @type {string | undefined} */ event) => {
         console.log(`[${currentDate} ${address}:${portWithRandomLog}] ${info}`, event || '');
     };
     const earlyDataHeader = request.headers.get('sec-websocket-protocol') || '';
@@ -343,9 +343,12 @@ async function websvcExecutor(request, config) {
             }
             handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
         },
-        close() { },
-        abort(reason) { },
-    })).catch((err) => { });
+        close() {
+        },
+        abort(reason) {
+        },
+    })).catch((err) => {
+    });
     return new Response(null, {
         status: 101,
         webSocket: client,
@@ -476,7 +479,8 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, onNoData
 async function handleUPOut(pipe, channelResponseHeader, config) {
     let ischannelHeaderSent = false;
     const transformStream = new TransformStream({
-        start(controller) { },
+        start(controller) {
+        },
         transform(chunk, controller) {
             for (let index = 0; index < chunk.byteLength;) {
                 const lengthBuffer = chunk.slice(index, index + 2);
@@ -488,11 +492,12 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
                 controller.enqueue(udpData);
             }
         },
-        flush(controller) { }
+        flush(controller) {
+        }
     });
     transformStream.readable.pipeTo(new WritableStream({
         async write(chunk) {
-            const resp = await fetch(config.durl,
+            const resp = await fetch(config.durl, 
                 {
                     method: 'POST',
                     headers: {
@@ -504,7 +509,6 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
             const udpSize = dnsQueryResult.byteLength;
             const udpSizeBuffer = new Uint8Array([(udpSize >> 8) & 0xff, udpSize & 0xff]);
             if (pipe.readyState === WS_READY_STATE_OPEN) {
-                log(`doh success and dns message length is ${udpSize}`);
                 if (ischannelHeaderSent) {
                     pipe.send(await new Blob([udpSizeBuffer, dnsQueryResult]).arrayBuffer());
                 } else {
@@ -514,7 +518,6 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
             }
         }
     })).catch((err) => {
-
     });
     const writer = transformStream.writable.getWriter();
     return {
