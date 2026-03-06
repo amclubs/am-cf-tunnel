@@ -58,9 +58,6 @@ export default {
             const config = await resolveConfig(request, env, kvData);
 
             if (request.headers.get('Upgrade') === 'websocket') {
-                if (config.prType === xorDe(dataTypeTr, 'datatype')) {
-                    return await websvcExecutorTr(request, config);
-                }
                 return await websvcExecutor(request, config);
             }
             switch (url.pathname.toLowerCase()) {
@@ -255,16 +252,16 @@ function isIpAddress(str) {
 }
 
 async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, config) {
-    let finalTargetHost = addressRemote;
-    let finalTargetPort = portRemote;
+    let finalHost = addressRemote;
+    let finalPort = portRemote;
     try {
         log(`[getDomainToRouteX]--> paddr=${config.paddr}, p64Prefix=${config.p64Prefix}, addressRemote=${addressRemote}, p64=${config.p64}`);
         log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(config.pDomain)}, p64Domain=${JSON.stringify(config.p64Domain)}`);
 
-        if (isIpAddress(addressRemote)) {
-            log(`[getDomainToRouteX] Skip DNS resolve because target is IP`);
-            return { finalTargetHost, finalTargetPort };
-        }
+        // if (isIpAddress(addressRemote)) {
+        //     log(`[getDomainToRouteX] Skip DNS resolve because target is IP`);
+        //     return { finalHost, finalPort };
+        // }
 
         const safeMatch = (domains, target) => {
             try {
@@ -282,36 +279,36 @@ async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, con
         if (config.s5Enable) {
             log(`[getDomainToRouteX]--> s5Enable=true, use remote directly`);
         } else if (resultDomain) {
-            finalTargetHost = config.paddr;
-            finalTargetPort = config.pnum || portRemote;
-            log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr;
+            finalPort = config.pnum || portRemote;
+            log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalHost}, port=${finalPort}`);
         } else if (result64Domain || (p64Flag && config.p64)) {
             try {
-                finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
-                finalTargetPort = portRemote;
-                log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalTargetHost}`);
+                finalHost = await resolveDomainToRouteX(addressRemote, config);
+                finalPort = portRemote;
+                log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalHost}`);
             } catch (err) {
                 log(`[retry]--> resolveDomainToRouteX failed: ${err.message}`);
-                finalTargetHost = config.paddr || addressRemote;
-                finalTargetPort = config.pnum || portRemote;
+                finalHost = config.paddr || addressRemote;
+                finalPort = config.pnum || portRemote;
             }
         } else if (p64Flag) {
-            finalTargetHost = config.paddr || addressRemote;
-            finalTargetPort = portRemote;
-            log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr || addressRemote;
+            finalPort = portRemote;
+            log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalHost}, port=${finalPort}`);
         }
 
-        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
-        return { finalTargetHost, finalTargetPort };
+        log(`[getDomainToRouteX]--> Final target: ${finalHost}:${finalPort}`);
+        return { finalHost, finalPort };
     } catch (err) {
         log(`[fatal]--> getDomainToRouteX failed: ${err.message}`);
         if (p64Flag) {
-            finalTargetHost = config.paddr || addressRemote;
-            finalTargetPort = portRemote;
-            log(`[fatal-fallback]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr || addressRemote;
+            finalPort = portRemote;
+            log(`[fatal-fallback]--> fallback by p64Flag, host=${finalHost}, port=${finalPort}`);
         }
-        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
-        return { finalTargetHost, finalTargetPort };
+        log(`[getDomainToRouteX]--> Final target: ${finalHost}:${finalPort}`);
+        return { finalHost, finalPort };
     }
 }
 
@@ -647,21 +644,11 @@ function websvcStream(pipeServer, earlyDataHeader, log) {
 }
 
 async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType, config) {
-    let failoverTriggered = false;
 
     async function connectAndWrite(address, port, socks = false) {
-        const tcpS = socks ? await serviceCall(addressType, address, port, config) : connect({ hostname: address, port: port, servername: addressRemote });
+        const tcpS = socks ? await serviceCall(addressType, address, port, log) : connect({ hostname: address, port: port, servername: addressRemote });
         remoteS.value = tcpS;
         log(`[connectAndWrite]--> s5:${socks} connected to ${address}:${port}`);
-        try {
-            if (tcpS.remoteAddress) {
-                log(`[connectAndWrite]--> real connected IP: ${tcpS.remoteAddress}:${tcpS.remotePort}`);
-            } else {
-                log(`[connectAndWrite]--> remoteAddress not available (runtime limitation)`);
-            }
-        } catch (e) {
-            log(`[connectAndWrite]--> cannot read remoteAddress: ${e.message}`);
-        }
         const writer = tcpS.writable.getWriter();
         await writer.write(rawClientData);
         writer.releaseLock();
@@ -669,121 +656,113 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     async function retry() {
-        const finalTargetHost = config.paddr || addressRemote;
-        const finalTargetPort = config.pnum || portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[retry]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
-        // tcpS.closed.catch(error => {
-        //     log('[retry]--> tcpS closed error', error);
-        // }).finally(() => {
-        //     closeDataStream(pipe);
-        // })
-        const hasData = await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
-        log(`[retry] hasData →  ${hasData} `);
-        return hasData;
+        const finalHost = config.paddr || addressRemote;
+        const finalPort = config.pnum || portRemote;
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        log(`[retry]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
+        let hasError = false;
+        tcpS.closed.catch(error => {
+            hasError = true;
+            log('[retry]--> tcpS closed error', error);
+        });
+        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+        if (hasError) {
+            throw new Error("retry tcp closed");
+        }
+        closeDataStream(pipe);
     }
 
     async function nat64() {
-        const finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
-        const finalTargetPort = portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[nat64]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
-        // tcpS.closed.catch(error => {
-        //     log('[nat64]--> tcpS closed error', error);
-        // }).finally(() => {
-        //     closeDataStream(pipe);
-        // })
-        const hasData = await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
-        log(`[nat64] hasData →  ${hasData} `);
-        return hasData;
+        const finalHost = await resolveDomainToRouteX(addressRemote, config);
+        const finalPort = portRemote;
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        log(`[nat64]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
+        let hasError = false;
+        tcpS.closed.catch(error => {
+            hasError = true;
+            log('[nat64]--> tcpS closed error', error);
+        });
+        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
+        if (hasError) {
+            throw new Error("nat64 tcp closed");
+        }
+        closeDataStream(pipe);
+    }
+
+    async function finalStep() {
+        try {
+            if (config.p64) {
+                log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
+                const ok = await tryOnce(nat64, 'nat64');
+                if (!ok) await tryOnce(retry, 'retry');
+            } else {
+                log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
+                const ok = await tryOnce(retry, 'retry');
+                if (!ok) await tryOnce(nat64, 'nat64');
+            }
+        } catch (err) {
+            log('[finalStep] error:', err);
+        }
     }
 
     async function tryOnce(fn, tag) {
         try {
             const ok = await fn();
-            const result = Boolean(ok);
-            log(`[finalStep] tryOnce ${tag} result:${result}`);
-            return result;
+            log(`[tryOnce] ${tag} finished normally`);
+            return true;
         } catch (err) {
-            log(`[finalStep] tryOnce ${tag} failed:`, err);
+            log(`[tryOnce] ${tag} failed:`, err);
             return false;
         }
     }
 
-    async function finalStep() {
-        if (failoverTriggered) return;
-        failoverTriggered = true;
-        let success = false;
-        try {
-            if (config.p64) {
-                log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
-                success = await tryOnce(nat64, 'nat64');
-                log(`[finalStep] p64=true → success ${success} `);
-                if (!success) {
-                    success = await tryOnce(retry, 'retry');
-                    log(`[finalStep] p64=true → retry success ${success} `);
-                }
-            } else {
-                log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
-                success = await tryOnce(retry, 'retry');
-                log(`[finalStep] p64=false → success ${success} `);
-                if (!success) {
-                    success = await tryOnce(nat64, 'nat64');
-                    log(`[finalStep] p64=false → nat64 success ${success} `);
-                }
-            }
-        } catch (err) {
-            log('[finalStep] error:', err);
-        }
-        log(`[finalStep] final → success ${success} `);
-        if (!success) {
-            log("all routes failed → closing pipe");
-            closeDataStream(pipe);
-        }
-    }
-
-    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, false, config);
-    log(`[handleTPOut]--> route decision finalTargetHost=${finalTargetHost}, finalTargetPort=${finalTargetPort}`);
-    const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, config.s5Enable ? true : false);
-    transferDataStream(tcpS, pipe, channelResponseHeader, async () => { await finalStep(); }, log);
+    const { finalHost, finalPort } = await getDomainToRouteX(addressRemote, portRemote, config.s5Enable, false, config);
+    const tcpS = await connectAndWrite(finalHost, finalPort, config.s5Enable ? true : false);
+    transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
 }
 
-async function transferDataStream(remoteS, pipe, channelResponseHeader, onNoData, log, firstPacketTimeout = 3000) {
-    let hasIncomingData = false;
+async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, log) {
+    let remoteChunkCount = 0;
+    let chunks = [];
     let channelHeader = channelResponseHeader;
-    const timeoutPromise = new Promise(resolve => {
-        setTimeout(() => {
-            if (!hasIncomingData) resolve(false);
-        }, firstPacketTimeout);
-    });
-    const pipePromise = remoteS.readable.pipeTo(
-        new WritableStream({
-            async write(chunk) {
-                hasIncomingData = true;
-                if (pipe.readyState !== WS_READY_STATE_OPEN) {
-                    throw new Error("pipe not open");
-                }
-                if (channelHeader) {
-                    pipe.send(await new Blob([channelHeader, chunk]).arrayBuffer());
-                    channelHeader = null;
-                } else {
-                    pipe.send(chunk);
-                }
-            }
-        })
-    ).then(() => hasIncomingData)
-        .catch(err => {
-            log('[transferDataStream] pipeTo error', err);
-            return hasIncomingData;
+    let hasIncomingData = false;
+    await remoteS.readable
+        .pipeTo(
+            new WritableStream({
+                start() {
+                },
+                async write(chunk, controller) {
+                    hasIncomingData = true;
+                    remoteChunkCount++;
+                    if (pipe.readyState !== WS_READY_STATE_OPEN) {
+                        controller.error(
+                            '[transferDataStream]--> pipe.readyState is not open, maybe close'
+                        );
+                    }
+                    if (channelHeader) {
+                        pipe.send(await new Blob([channelHeader, chunk]).arrayBuffer());
+                        channelHeader = null;
+                    } else {
+                        pipe.send(chunk);
+                    }
+                },
+                close() {
+                    log(`[transferDataStream]--> serviceCallion!.readable is close with hasIncomingData is ${hasIncomingData}`);
+                },
+                abort(reason) {
+                    console.error(`[transferDataStream]--> serviceCallion!.readable abort`, reason);
+                },
+            })
+        )
+        .catch((error) => {
+            console.error(`[transferDataStream]--> transferDataStream has exception `, error.stack || error);
+            closeDataStream(pipe);
         });
 
-    hasIncomingData = await Promise.race([pipePromise, timeoutPromise]);
-    log(`[transferDataStream] close, hasIncomingData=${hasIncomingData}`);
-    if (!hasIncomingData && typeof onNoData === "function") {
-        log(`[transferDataStream] no data → trigger failover`);
-        await onNoData();
+    if (hasIncomingData === false && typeof retry === 'function') {
+        log(`[transferDataStream]--> no data, invoke finalStep flow`);
+        retry();
     }
-    return hasIncomingData;
 }
 
 async function handleUPOut(pipe, channelResponseHeader, config) {
