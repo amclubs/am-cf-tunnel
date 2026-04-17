@@ -255,15 +255,15 @@ function isIpAddress(str) {
 }
 
 async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, config) {
-    let finalTargetHost = addressRemote;
-    let finalTargetPort = portRemote;
+    let finalHost = addressRemote;
+    let finalPort = portRemote;
     try {
         log(`[getDomainToRouteX]--> paddr=${config.paddr}, p64Prefix=${config.p64Prefix}, addressRemote=${addressRemote}, p64=${config.p64}`);
         log(`[getDomainToRouteX]--> pDomain=${JSON.stringify(config.pDomain)}, p64Domain=${JSON.stringify(config.p64Domain)}`);
 
         // if (isIpAddress(addressRemote)) {
         //     log(`[getDomainToRouteX] Skip DNS resolve because target is IP`);
-        //     return { finalTargetHost, finalTargetPort };
+        //     return { finalHost, finalPort };
         // }
 
         const safeMatch = (domains, target) => {
@@ -282,36 +282,36 @@ async function getDomainToRouteX(addressRemote, portRemote, p64Flag = false, con
         if (config.s5Enable) {
             log(`[getDomainToRouteX]--> s5Enable=true, use remote directly`);
         } else if (resultDomain) {
-            finalTargetHost = config.paddr;
-            finalTargetPort = config.pnum || portRemote;
-            log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr;
+            finalPort = config.pnum || portRemote;
+            log(`[getDomainToRouteX]--> Matched pDomain, use paddr=${finalHost}, port=${finalPort}`);
         } else if (result64Domain || (p64Flag && config.p64)) {
             try {
-                finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
-                finalTargetPort = portRemote;
-                log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalTargetHost}`);
+                finalHost = await resolveDomainToRouteX(addressRemote, config);
+                finalPort = portRemote;
+                log(`[getDomainToRouteX]--> Resolved p64Domain via resolveDomainToRouteX: ${finalHost}`);
             } catch (err) {
                 log(`[retry]--> resolveDomainToRouteX failed: ${err.message}`);
-                finalTargetHost = config.paddr || addressRemote;
-                finalTargetPort = config.pnum || portRemote;
+                finalHost = config.paddr || addressRemote;
+                finalPort = config.pnum || portRemote;
             }
         } else if (p64Flag) {
-            finalTargetHost = config.paddr || addressRemote;
-            finalTargetPort = portRemote;
-            log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr || addressRemote;
+            finalPort = portRemote;
+            log(`[getDomainToRouteX]--> fallback by p64Flag, host=${finalHost}, port=${finalPort}`);
         }
 
-        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
-        return { finalTargetHost, finalTargetPort };
+        log(`[getDomainToRouteX]--> Final target: ${finalHost}:${finalPort}`);
+        return { finalHost, finalPort };
     } catch (err) {
         log(`[fatal]--> getDomainToRouteX failed: ${err.message}`);
         if (p64Flag) {
-            finalTargetHost = config.paddr || addressRemote;
-            finalTargetPort = portRemote;
-            log(`[fatal-fallback]--> fallback by p64Flag, host=${finalTargetHost}, port=${finalTargetPort}`);
+            finalHost = config.paddr || addressRemote;
+            finalPort = portRemote;
+            log(`[fatal-fallback]--> fallback by p64Flag, host=${finalHost}, port=${finalPort}`);
         }
-        log(`[getDomainToRouteX]--> Final target: ${finalTargetHost}:${finalTargetPort}`);
-        return { finalTargetHost, finalTargetPort };
+        log(`[getDomainToRouteX]--> Final target: ${finalHost}:${finalPort}`);
+        return { finalHost, finalPort };
     }
 }
 
@@ -1060,6 +1060,7 @@ async function websvcExecutor(request, config) {
 
     readableWebSocketStream.pipeTo(new WritableStream({
         async write(chunk, controller) {
+
             if (isDns && udpStreamWrite) {
                 return udpStreamWrite(chunk);
             }
@@ -1184,16 +1185,26 @@ function websvcStream(pipeServer, earlyDataHeader, log) {
     let readableStreamCancel = false;
     const stream = new ReadableStream({
         start(controller) {
-            pipeServer.addEventListener('message', (event) => {
-                const message = event.data;
-                controller.enqueue(message);
+            pipeServer.addEventListener('message', async (event) => {
+                let message = event.data;
+                if (message instanceof ArrayBuffer) {
+                    //
+                } else if (message instanceof Uint8Array) {
+                    message = message.buffer;
+                } else if (message instanceof Blob) {
+                    message = await message.arrayBuffer();
+                } else if (typeof message === "string") {
+                    message = new TextEncoder().encode(message).buffer;
+                } else {
+                    console.error("Unknown WS message type:", message);
+                    return;
+                }
+                controller.enqueue(new Uint8Array(message));
             });
-
             pipeServer.addEventListener('close', () => {
                 closeDataStream(pipeServer);
                 controller.close();
             });
-
             pipeServer.addEventListener('error', (err) => {
                 log('pipeServer has error');
                 controller.error(err);
@@ -1205,25 +1216,22 @@ function websvcStream(pipeServer, earlyDataHeader, log) {
                 controller.enqueue(earlyData);
             }
         },
-
         pull(controller) {
             // if ws can stop read if stream is full, we can implement backpressure
         },
-
         cancel(reason) {
             log(`ReadableStream was canceled, due to ${reason}`)
             readableStreamCancel = true;
             closeDataStream(pipeServer);
         }
     });
-
     return stream;
 }
 
 async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType, config) {
 
     async function connectAndWrite(address, port, socks = false) {
-        const tcpS = socks ? await serviceCall(addressType, address, port, log) : connect({ hostname: address, port: port, servername: addressRemote });
+        const tcpS = socks ? await serviceCall(addressType, address, port, config) : connect({ hostname: address, port: port, servername: addressRemote });
         remoteS.value = tcpS;
         log(`[connectAndWrite]--> s5:${socks} connected to ${address}:${port}`);
         const writer = tcpS.writable.getWriter();
@@ -1233,10 +1241,10 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     async function retry() {
-        const finalTargetHost = config.paddr || addressRemote;
-        const finalTargetPort = config.pnum || portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[retry]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
+        const finalHost = config.paddr || addressRemote;
+        const finalPort = config.pnum || portRemote;
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        log(`[retry]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
         let hasError = false;
         tcpS.closed.catch(error => {
             hasError = true;
@@ -1250,10 +1258,10 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     async function nat64() {
-        const finalTargetHost = await resolveDomainToRouteX(addressRemote, config);
-        const finalTargetPort = portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalTargetHost, finalTargetPort, true) : await connectAndWrite(finalTargetHost, finalTargetPort);
-        log(`[nat64]--> s5:${config.s5Enable} connected to ${finalTargetHost}:${finalTargetPort}`);
+        const finalHost = await resolveDomainToRouteX(addressRemote, config);
+        const finalPort = portRemote;
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        log(`[nat64]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
         let hasError = false;
         tcpS.closed.catch(error => {
             hasError = true;
@@ -1293,8 +1301,8 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
         }
     }
 
-    const { finalTargetHost, finalTargetPort } = await getDomainToRouteX(addressRemote, portRemote, config.s5Enable, false, config);
-    const tcpS = await connectAndWrite(finalTargetHost, finalTargetPort, config.s5Enable ? true : false);
+    const { finalHost, finalPort } = await getDomainToRouteX(addressRemote, portRemote, false, config);
+    const tcpS = await connectAndWrite(finalHost, finalPort, config.s5Enable ? true : false);
     transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
 }
 
