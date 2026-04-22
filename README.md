@@ -298,9 +298,12 @@
 ### 🙏感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
 
-###  🌟推荐
-**【流量光】** 中转+专线高速机场 (**9.9元300G每月**) (**75元包年每月300G**) (**55元1000GB不限时**)✅畅爽晚高峰 解锁ChatGPT、全流媒体(送小火箭)
-</br>🌐官网：[https://llgjc.org](https://go.amclubss.com/llgjc)
+###  🌟机场推荐
+【糖果云】🌐官网：<a href="https://candytally.pro/web/#/login?code=vPvpo7tl">candytally.com</a>
+</br>
+✅送Emby|晚高峰8K|解锁流媒体GPT|专线🎁8折码：<code>candytally</code>
+</br>
+💰558元一年/每月600G 94元1200G/每月 54元600G/每月 
 
 # 
 <center>
