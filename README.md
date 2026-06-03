@@ -8,6 +8,15 @@
 - [🔥amclubs-cfnat自动优先IP(Win桌面版)](https://youtu.be/-a6NJ6vPSu4) | [Linux&openwrt软路由版](https://youtu.be/ZC6fxZwPaiM) | [Mac版](https://youtu.be/gf6gncc2yEE) | [安卓(Android)手机版](https://youtu.be/7yamDM38MFw) | [docker版](https://youtu.be/gRnNwoeUQKU)
 - 本频道订阅器转换地址：https://sub.amclubss.com
 
+<div align="center" markdown="1">
+  <a href="https://doloffer.com/friend/xm5ydFi1">
+    <img alt="doloffer" style="width:900px;max-width:100%;height:300px;" src="example/doloffer_ad.jpg">
+  </a><br>
+  <a href="https://doloffer.com/friend/xm5ydFi1"><b>Doloffer🔥全网超划算的 ChatGPT Plus / Claude Pro 充值平台｜官方正版订阅｜独立账号・共享车位｜稳定续费・售后无忧｜低成本畅享顶级 AI 工具</b></a>
+</div>
+
+- 🎁专属9折优惠码：AI8888（全场通用）🔗 立即前往：👉 [Doloffer官方网站](https://doloffer.com/friend/xm5ydFi1) ｜ 📖 [Doloffer Guide](https://github.com/Doloffer-g/guide)
+
 ## 📝一、前期准备资料
 <details>
 <summary>点击展开/收起</summary>
@@ -144,6 +153,8 @@
 
 ## 
 ## 🧩六、节点订阅器部署  [Vercel部署视频教程](https://www.youtube.com/playlist?list=PLGVQi7TjHKXZGODTvB8DEervrmHANQ1AR) [Cloudfare部署视频教程](https://youtu.be/f8ZTvv4u3Pw)
+
+### 🚀节点订阅器项目地址 [am-cf-tunnel-sub](https://github.com/amclubs/am-cf-tunnel-sub)
 
 #### `①` Vercel方式部署 [视频教程](https://www.youtube.com/watch?v=i-XnnP-MptY&t=596s)
 <details>
@@ -298,9 +309,12 @@
 ### 🙏感谢
 [3Kmfi6HP](https://github.com/3Kmfi6HP/EDtunnel)、[ACL4SSR](https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config)
 
-###  🌟推荐
-**【流量光】** 中转+专线高速机场 (**9.9元300G每月**) (**75元包年每月300G**) (**55元1000GB不限时**)✅畅爽晚高峰 解锁ChatGPT、全流媒体(送小火箭)
-</br>🌐官网：[https://llgjc.org](https://llgjc.org/#/register?code=bIUDEPTu)
+###  🌟机场推荐
+【糖果云】🌐官网：<a href="https://candytally.pro/web/#/login?code=vPvpo7tl">candytally.com</a>
+</br>
+✅送Emby|晚高峰8K|解锁流媒体GPT|专线🎁8折码：<code>candytally</code>
+</br>
+💰558元一年/每月600G 94元1200G/每月 54元600G/每月 
 
 # 
 <center>
