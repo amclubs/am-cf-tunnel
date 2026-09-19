@@ -58,9 +58,6 @@ export default {
             const config = await resolveConfig(request, env, kvData);
 
             if (request.headers.get('Upgrade') === 'websocket') {
-                if (config.prType === xorDe(dataTypeTr, 'datatype')) {
-                    return await websvcExecutorTr(request, config);
-                }
                 return await websvcExecutor(request, config);
             }
             switch (url.pathname.toLowerCase()) {
@@ -99,9 +96,9 @@ async function resolveConfig(request, env, kvData) {
     const s5 = url.searchParams.get('S5') ?? env.S5 ?? s5Defaul;
     const parsedS5 = (await requestParserFromUrl(s5, url)) ?? parsedS5Defaul;
     const s5Enable = parsedS5 && Object.keys(parsedS5).length > 0;
-    let prType = url.searchParams.get(atob('UFJPVF9UWVBF'));
+    let prType = url.searchParams.get(atob('UFJPVF9UWVBF')) ?? env.PROT_TYPE ?? '';
     if (prType) {
-        prType = prType.toLowerCase();
+        prType = String(prType).trim().toLowerCase();
     }
     const parseNumberOption = (name, defaultValue, min, max) => {
         const value = Number(url.searchParams.get(name) ?? env[name] ?? defaultValue);
@@ -1078,6 +1075,9 @@ async function websvcExecutor(request, config) {
         remoteSocketWapper.close(reason);
     });
     let isDns = false;
+    const trojanType = xorDe(dataTypeTr, 'datatype');
+    let protocolType = config.prType === trojanType ? trojanType : config.prType === 'vless' ? 'vless' : null;
+    let requestHeaderBuffer = new Uint8Array(0);
 
     readableWebSocketStream.pipeTo(new WritableStream({
         async write(chunk, controller) {
@@ -1090,8 +1090,61 @@ async function websvcExecutor(request, config) {
                 return;
             }
 
+            const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+            if (requestHeaderBuffer.byteLength + data.byteLength > 64 * 1024) {
+                throw new Error('request header is too large');
+            }
+            const mergedHeader = new Uint8Array(requestHeaderBuffer.byteLength + data.byteLength);
+            mergedHeader.set(requestHeaderBuffer);
+            mergedHeader.set(data, requestHeaderBuffer.byteLength);
+            requestHeaderBuffer = mergedHeader;
+
+            if (!protocolType) {
+                if (requestHeaderBuffer.byteLength >= 18) {
+                    try {
+                        const requestUser = stringify(requestHeaderBuffer.slice(1, 17));
+                        const users = String(id || '').split(',').map(user => user.trim());
+                        if (users.includes(requestUser)) protocolType = 'vless';
+                    } catch (error) { }
+                }
+                if (!protocolType && requestHeaderBuffer.byteLength >= 58) {
+                    if (requestHeaderBuffer[56] === 0x0d && requestHeaderBuffer[57] === 0x0a) {
+                        protocolType = trojanType;
+                    } else {
+                        throw new Error('unable to detect request protocol');
+                    }
+                }
+                if (!protocolType) return;
+                log(`request protocol detected: ${protocolType}`);
+            }
+
+            if (protocolType === trojanType) {
+                const trojanRequest = await handleRequestHeaderTr(requestHeaderBuffer, id);
+                if (trojanRequest.needMore) return;
+                if (trojanRequest.hasError) throw new Error(trojanRequest.message);
+                const {
+                    portRemote = 443,
+                    addressRemote = '',
+                    rawClientData,
+                    isUDP,
+                    addressType,
+                } = trojanRequest;
+                address = addressRemote;
+                portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
+                requestHeaderBuffer = new Uint8Array(0);
+                if (isUDP) {
+                    isDns = true;
+                    udpStreamHandler = await handleUPOut(webSocket, null, config, trojanType);
+                    await udpStreamHandler.write(rawClientData);
+                    return;
+                }
+                await handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, null, log, addressType, config);
+                return;
+            }
+
             const {
                 hasError,
+                needMore,
                 message,
                 portRemote = 443,
                 addressRemote = '',
@@ -1099,7 +1152,8 @@ async function websvcExecutor(request, config) {
                 channelVersion = new Uint8Array([0, 0]),
                 isUDP,
                 addressType,
-            } = handleRequestHeader(chunk, id);
+            } = handleRequestHeader(requestHeaderBuffer, id);
+            if (needMore) return;
             address = addressRemote;
             portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
             log(`handleRequestHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote} portWithRandomLog:${portWithRandomLog}`);
@@ -1117,7 +1171,8 @@ async function websvcExecutor(request, config) {
             }
 
             const channelResponseHeader = new Uint8Array([channelVersion[0], 0]);
-            const rawClientData = chunk.slice(rawDataIndex);
+            const rawClientData = requestHeaderBuffer.slice(rawDataIndex);
+            requestHeaderBuffer = new Uint8Array(0);
 
             if (isDns) {
                 udpStreamHandler = await handleUPOut(webSocket, channelResponseHeader, config);
@@ -1805,11 +1860,12 @@ async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, l
     closeDataStream(pipe);
 }
 
-async function handleUPOut(pipe, channelResponseHeader, config) {
+async function handleUPOut(pipe, channelResponseHeader, config, protocolType = 'vless') {
     let ischannelHeaderSent = false;
     let pendingData = new Uint8Array(0);
     let closed = false;
     let closePromise = null;
+    const isTrojan = protocolType === xorDe(dataTypeTr, 'datatype');
     const activeRequests = new Set();
     const transformStream = new TransformStream({
         start(controller) {
@@ -1825,11 +1881,47 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
             }
 
             let index = 0;
-            while (pendingData.byteLength - index >= 2) {
+            while (index < pendingData.byteLength) {
+                if (isTrojan) {
+                    if (pendingData.byteLength - index < 1) break;
+                    const addressType = pendingData[index];
+                    let addressLength = 0;
+                    let addressIndex = index + 1;
+                    if (addressType === 1) {
+                        addressLength = 4;
+                    } else if (addressType === 4) {
+                        addressLength = 16;
+                    } else if (addressType === 3) {
+                        if (pendingData.byteLength < addressIndex + 1) break;
+                        addressLength = 1 + pendingData[addressIndex];
+                    } else {
+                        throw new Error(`invalid trojan UDP addressType: ${addressType}`);
+                    }
+
+                    const portIndex = addressIndex + addressLength;
+                    if (pendingData.byteLength < portIndex + 6) break;
+                    const port = (pendingData[portIndex] << 8) | pendingData[portIndex + 1];
+                    const udpPacketLength = (pendingData[portIndex + 2] << 8) | pendingData[portIndex + 3];
+                    if (pendingData[portIndex + 4] !== 0x0d || pendingData[portIndex + 5] !== 0x0a) {
+                        throw new Error('invalid trojan UDP delimiter');
+                    }
+                    const payloadIndex = portIndex + 6;
+                    if (pendingData.byteLength < payloadIndex + udpPacketLength) break;
+                    if (port !== 53) throw new Error('Trojan UDP proxy only enabled for DNS which is port 53');
+                    if (udpPacketLength === 0) throw new Error('invalid empty UDP packet');
+                    controller.enqueue({
+                        payload: pendingData.slice(payloadIndex, payloadIndex + udpPacketLength),
+                        responseHeader: pendingData.slice(index, portIndex + 2),
+                    });
+                    index = payloadIndex + udpPacketLength;
+                    continue;
+                }
+
+                if (pendingData.byteLength - index < 2) break;
                 const udpPacketLength = (pendingData[index] << 8) | pendingData[index + 1];
                 if (udpPacketLength === 0) throw new Error('invalid empty UDP packet');
                 if (pendingData.byteLength - index < udpPacketLength + 2) break;
-                controller.enqueue(pendingData.slice(index + 2, index + 2 + udpPacketLength));
+                controller.enqueue({ payload: pendingData.slice(index + 2, index + 2 + udpPacketLength) });
                 index += udpPacketLength + 2;
             }
             pendingData = index > 0 ? pendingData.slice(index) : pendingData;
@@ -1840,8 +1932,9 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
     });
 
     const processingPromise = transformStream.readable.pipeTo(new WritableStream({
-        async write(chunk) {
+        async write(packet) {
             if (closed) throw new Error('DNS stream is closed');
+            const { payload, responseHeader } = packet;
             const abortController = new AbortController();
             activeRequests.add(abortController);
             const timeoutId = setTimeout(() => abortController.abort(new Error('DoH request timeout')), 10000);
@@ -1853,7 +1946,7 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
                             'content-type': 'application/dns-message',
                             'accept': 'application/dns-message',
                         },
-                        body: chunk,
+                        body: payload,
                         signal: abortController.signal,
                     });
                 if (!resp.ok) {
@@ -1867,7 +1960,15 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
                 if (!closed && pipe.readyState === WS_READY_STATE_OPEN) {
                     log(`doh success and dns message length is ${udpSize}`);
                     let response;
-                    if (ischannelHeaderSent) {
+                    if (isTrojan) {
+                        response = new Uint8Array(responseHeader.byteLength + 4 + dnsQueryResult.byteLength);
+                        response.set(responseHeader, 0);
+                        response[responseHeader.byteLength] = (udpSize >> 8) & 0xff;
+                        response[responseHeader.byteLength + 1] = udpSize & 0xff;
+                        response[responseHeader.byteLength + 2] = 0x0d;
+                        response[responseHeader.byteLength + 3] = 0x0a;
+                        response.set(new Uint8Array(dnsQueryResult), responseHeader.byteLength + 4);
+                    } else if (ischannelHeaderSent) {
                         response = new Uint8Array(udpSizeBuffer.byteLength + dnsQueryResult.byteLength);
                         response.set(udpSizeBuffer, 0);
                         response.set(new Uint8Array(dnsQueryResult), udpSizeBuffer.byteLength);
@@ -2094,8 +2195,8 @@ function handleRequestHeader(channelBuffer, id) {
     const length = data.byteLength;
     if (length < 24) {
         return {
-            hasError: true,
-            message: 'invalid data',
+            hasError: false,
+            needMore: true,
         };
     }
 
@@ -2119,8 +2220,8 @@ function handleRequestHeader(channelBuffer, id) {
     const commandIndex = 18 + optLength;
     if (length < commandIndex + 4) {
         return {
-            hasError: true,
-            message: 'invalid request header length',
+            hasError: false,
+            needMore: true,
         };
     }
     const command = data[commandIndex];
@@ -2147,18 +2248,21 @@ function handleRequestHeader(channelBuffer, id) {
         case 1:
             addressLength = 4;
             if (length < addressValueIndex + addressLength) {
-                return { hasError: true, message: 'invalid IPv4 address length' };
+                return { hasError: false, needMore: true };
             }
             addressValue = data.slice(addressValueIndex, addressValueIndex + addressLength).join('.');
             break;
         case 2:
             if (length < addressValueIndex + 1) {
-                return { hasError: true, message: 'invalid domain length' };
+                return { hasError: false, needMore: true };
             }
             addressLength = data[addressValueIndex];
             addressValueIndex += 1;
-            if (addressLength === 0 || length < addressValueIndex + addressLength) {
+            if (addressLength === 0) {
                 return { hasError: true, message: 'invalid domain data' };
+            }
+            if (length < addressValueIndex + addressLength) {
+                return { hasError: false, needMore: true };
             }
             addressValue = new TextDecoder().decode(
                 data.slice(addressValueIndex, addressValueIndex + addressLength)
@@ -2167,7 +2271,7 @@ function handleRequestHeader(channelBuffer, id) {
         case 3:
             addressLength = 16;
             if (length < addressValueIndex + addressLength) {
-                return { hasError: true, message: 'invalid IPv6 address length' };
+                return { hasError: false, needMore: true };
             }
             const dataView = new DataView(
                 data.buffer,
@@ -2211,8 +2315,8 @@ async function handleRequestHeaderTr(buffer, id) {
     const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     if (data.byteLength < 58) {
         return {
-            hasError: true,
-            message: "invalid data"
+            hasError: false,
+            needMore: true
         };
     }
     let crLfIndex = 56;
@@ -2222,30 +2326,33 @@ async function handleRequestHeaderTr(buffer, id) {
             message: "invalid header format (missing CR LF)"
         };
     }
-    const password = new TextDecoder().decode(data.slice(0, crLfIndex));
-    if (password !== sha256.sha224(id)) {
-        return {
-            hasError: true,
-            message: "invalid password"
-        };
+    const password = sha256.sha224(id);
+    for (let i = 0; i < crLfIndex; i++) {
+        if (data[i] !== password.charCodeAt(i)) {
+            return {
+                hasError: true,
+                message: "invalid password"
+            };
+        }
     }
 
     const s5DataBuffer = data.slice(crLfIndex + 2);
-    if (s5DataBuffer.byteLength < 6) {
+    if (s5DataBuffer.byteLength < 2) {
         return {
-            hasError: true,
-            message: "invalid S5 request data"
+            hasError: false,
+            needMore: true
         };
     }
 
-    const view = new DataView(s5DataBuffer);
+    const view = new DataView(s5DataBuffer.buffer, s5DataBuffer.byteOffset, s5DataBuffer.byteLength);
     const cmd = view.getUint8(0);
-    if (cmd !== 1) {
+    if (cmd !== 1 && cmd !== 3) {
         return {
             hasError: true,
-            message: "unsupported command, only TCP (CONNECT) is allowed"
+            message: "unsupported command, only TCP/UDP is allowed"
         };
     }
+    const isUDP = cmd === 3;
 
     const addressType = view.getUint8(1);
     let addressLength = 0;
@@ -2255,18 +2362,21 @@ async function handleRequestHeaderTr(buffer, id) {
         case 1:
             addressLength = 4;
             if (s5DataBuffer.byteLength < addressIndex + addressLength) {
-                return { hasError: true, message: "invalid IPv4 address length" };
+                return { hasError: false, needMore: true };
             }
             address = s5DataBuffer.slice(addressIndex, addressIndex + addressLength).join(".");
             break;
         case 3:
             if (s5DataBuffer.byteLength < addressIndex + 1) {
-                return { hasError: true, message: "invalid domain length" };
+                return { hasError: false, needMore: true };
             }
             addressLength = s5DataBuffer[addressIndex];
             addressIndex += 1;
-            if (addressLength === 0 || s5DataBuffer.byteLength < addressIndex + addressLength) {
+            if (addressLength === 0) {
                 return { hasError: true, message: "invalid domain data" };
+            }
+            if (s5DataBuffer.byteLength < addressIndex + addressLength) {
+                return { hasError: false, needMore: true };
             }
             address = new TextDecoder().decode(
                 s5DataBuffer.slice(addressIndex, addressIndex + addressLength)
@@ -2275,7 +2385,7 @@ async function handleRequestHeaderTr(buffer, id) {
         case 4:
             addressLength = 16;
             if (s5DataBuffer.byteLength < addressIndex + addressLength) {
-                return { hasError: true, message: "invalid IPv6 address length" };
+                return { hasError: false, needMore: true };
             }
             const dataView = new DataView(s5DataBuffer.buffer, s5DataBuffer.byteOffset + addressIndex, addressLength);
             const ipv6 = [];
@@ -2299,16 +2409,20 @@ async function handleRequestHeaderTr(buffer, id) {
     }
 
     const portIndex = addressIndex + addressLength;
-    if (s5DataBuffer.byteLength < portIndex + 2) {
-        return { hasError: true, message: "invalid port data" };
+    if (s5DataBuffer.byteLength < portIndex + 4) {
+        return { hasError: false, needMore: true };
     }
     const portRemote = (s5DataBuffer[portIndex] << 8) | s5DataBuffer[portIndex + 1];
+    if (s5DataBuffer[portIndex + 2] !== 0x0d || s5DataBuffer[portIndex + 3] !== 0x0a) {
+        return { hasError: true, message: "invalid S5 request data (missing CR LF)" };
+    }
     return {
         hasError: false,
         message: null,
         addressRemote: address,
         portRemote,
         rawClientData: s5DataBuffer.slice(portIndex + 4),
+        isUDP,
         addressType: addressType
     };
 }
