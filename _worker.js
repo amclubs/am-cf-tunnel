@@ -103,6 +103,11 @@ async function resolveConfig(request, env, kvData) {
     if (prType) {
         prType = prType.toLowerCase();
     }
+    const parseNumberOption = (name, defaultValue, min, max) => {
+        const value = Number(url.searchParams.get(name) ?? env[name] ?? defaultValue);
+        if (!Number.isFinite(value)) return defaultValue;
+        return Math.min(max, Math.max(min, Math.floor(value)));
+    };
 
     const config = {
         paddr,
@@ -115,6 +120,9 @@ async function resolveConfig(request, env, kvData) {
         parsedS5,
         s5Enable,
         durl: url.searchParams.get('D_URL') ?? env.D_URL ?? durlDefaul,
+        tcpConnectTimeout: parseNumberOption('TCP_CONNECT_TIMEOUT', TCP_CONNECT_TIMEOUT_MS, 250, 10000),
+        tcpDirectConcurrency: parseNumberOption('TCP_CONCURRENT_DIAL', TCP_DIRECT_CONCURRENCY, 1, 4),
+        tcpProxyConcurrency: parseNumberOption('PROXY_CONCURRENT_DIAL', TCP_PROXY_CONCURRENCY, 1, 4),
         prType
     };
     log(`[config]-->[${Date.now()}]`, JSON.stringify(config));
@@ -409,7 +417,7 @@ function stringToArray(str) {
         WINDOW = false;
     }
     var WEB_WORKER = !WINDOW && typeof self === 'object';
-    var NODE_JS = !root.JS_SHA256_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
+    var NODE_JS = !root.JS_SHA256_NO_NODE_JS && typeof require === 'function' && typeof process === 'object' && process.versions && process.versions.node;
     if (NODE_JS) {
         root = global;
     } else if (WEB_WORKER) {
@@ -1037,10 +1045,24 @@ async function show_kv_page(env) {
 /** -------------------websvc logic-------------------------------- */
 const WS_READY_STATE_OPEN = 1;
 const WS_READY_STATE_CLOSING = 2;
+const UPLOAD_BATCH_TARGET_BYTES = 20 * 1024;
+const UPLOAD_QUEUE_MAX_BYTES = 16 * 1024 * 1024;
+const UPLOAD_QUEUE_MAX_ITEMS = 4096;
+const DOWNLOAD_CHUNK_MAX_BYTES = 32 * 1024;
+const DOWNLOAD_BUFFER_DELAY_MS = 1;
+const UPLOAD_DRAIN_TIMEOUT_MS = 1000;
+const TCP_CONNECT_TIMEOUT_MS = 1000;
+const TCP_DIRECT_CONCURRENCY = 2;
+const TCP_PROXY_CONCURRENCY = 1;
 async function websvcExecutor(request, config) {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
-    webSocket.accept();
+    webSocket.binaryType = 'arraybuffer';
+    try {
+        webSocket.accept({ allowHalfOpen: true });
+    } catch (error) {
+        webSocket.accept();
+    }
 
     let address = '';
     let portWithRandomLog = '';
@@ -1048,26 +1070,23 @@ async function websvcExecutor(request, config) {
     const log = (/** @type {string} */ info, /** @type {string | undefined} */ event) => {
         console.log(`[${currentDate} ${address}:${portWithRandomLog}] ${info}`, event || '');
     };
+    const remoteSocketWapper = createRemoteSocketWrapper(log, () => closeDataStream(webSocket));
+    let udpStreamHandler = null;
     const earlyDataHeader = request.headers.get('sec-websocket-protocol') || '';
-    const readableWebSocketStream = websvcStream(webSocket, earlyDataHeader, log);
-
-    /** @type {{ value: import("@cloudflare/workers-types").Socket | null}}*/
-    let remoteSocketWapper = {
-        value: null,
-    };
-    let udpStreamWrite = null;
+    const readableWebSocketStream = websvcStream(webSocket, earlyDataHeader, log, (reason) => {
+        udpStreamHandler?.close(reason);
+        remoteSocketWapper.close(reason);
+    });
     let isDns = false;
 
     readableWebSocketStream.pipeTo(new WritableStream({
         async write(chunk, controller) {
 
-            if (isDns && udpStreamWrite) {
-                return udpStreamWrite(chunk);
+            if (isDns && udpStreamHandler) {
+                return udpStreamHandler.write(chunk);
             }
-            if (remoteSocketWapper.value) {
-                const writer = remoteSocketWapper.value.writable.getWriter()
-                await writer.write(chunk);
-                writer.releaseLock();
+            if (remoteSocketWapper.value || remoteSocketWapper.connectingPromise) {
+                await remoteSocketWapper.write(chunk);
                 return;
             }
 
@@ -1101,22 +1120,27 @@ async function websvcExecutor(request, config) {
             const rawClientData = chunk.slice(rawDataIndex);
 
             if (isDns) {
-                const { write } = await handleUPOut(webSocket, channelResponseHeader, config);
-                udpStreamWrite = write;
-                udpStreamWrite(rawClientData);
+                udpStreamHandler = await handleUPOut(webSocket, channelResponseHeader, config);
+                await udpStreamHandler.write(rawClientData);
                 return;
             }
 
-            handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
+            await handleTPOut(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType, config);
         },
-        close() {
+        async close() {
             log(`readableWebSocketStream is close`);
+            await udpStreamHandler?.close();
+            await remoteSocketWapper.closeGracefully();
         },
-        abort(reason) {
+        async abort(reason) {
             log(`readableWebSocketStream is abort`, JSON.stringify(reason));
+            await udpStreamHandler?.close(reason);
+            remoteSocketWapper.close(reason);
         },
     })).catch((err) => {
         log('readableWebSocketStream pipeTo error', err);
+        remoteSocketWapper.close(err);
+        closeDataStream(webSocket);
     });
 
     return new Response(null, {
@@ -1128,29 +1152,35 @@ async function websvcExecutor(request, config) {
 async function websvcExecutorTr(request, config) {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
-    webSocket.accept();
+    webSocket.binaryType = 'arraybuffer';
+    try {
+        webSocket.accept({ allowHalfOpen: true });
+    } catch (error) {
+        webSocket.accept();
+    }
 
     let address = "";
     let portWithRandomLog = "";
-    const remoteSocketWrapper = { value: null };
-    let udpStreamWrite = null;
+    let udpStreamHandler = null;
 
     const log = (info, event = "") => {
         console.log(`[${address}:${portWithRandomLog}] ${info}`, event);
     };
+    const remoteSocketWrapper = createRemoteSocketWrapper(log, () => closeDataStream(webSocket));
 
     const earlyDataHeader = request.headers.get("sec-websocket-protocol") || "";
-    const readableWebSocketStream = websvcStream(webSocket, earlyDataHeader, log);
+    const readableWebSocketStream = websvcStream(webSocket, earlyDataHeader, log, (reason) => {
+        udpStreamHandler?.close(reason);
+        remoteSocketWrapper.close(reason);
+    });
 
     const handleStreamData = async (chunk) => {
-        if (udpStreamWrite) {
-            return udpStreamWrite(chunk);
+        if (udpStreamHandler) {
+            return udpStreamHandler.write(chunk);
         }
 
-        if (remoteSocketWrapper.value) {
-            const writer = remoteSocketWrapper.value.writable.getWriter();
-            await writer.write(chunk);
-            writer.releaseLock();
+        if (remoteSocketWrapper.value || remoteSocketWrapper.connectingPromise) {
+            await remoteSocketWrapper.write(chunk);
             return;
         }
 
@@ -1161,17 +1191,27 @@ async function websvcExecutorTr(request, config) {
             throw new Error(message);
         }
 
-        handleTPOut(remoteSocketWrapper, addressRemote, portRemote, rawClientData, webSocket, null, log, addressType, config);
+        await handleTPOut(remoteSocketWrapper, addressRemote, portRemote, rawClientData, webSocket, null, log, addressType, config);
     };
 
     readableWebSocketStream.pipeTo(
         new WritableStream({
             write: handleStreamData,
-            close: () => log("readableWebSocketStream is closed"),
-            abort: (reason) => log("readableWebSocketStream is aborted", JSON.stringify(reason)),
+            close: async () => {
+                log("readableWebSocketStream is closed");
+                await udpStreamHandler?.close();
+                await remoteSocketWrapper.closeGracefully();
+            },
+            abort: async (reason) => {
+                log("readableWebSocketStream is aborted", JSON.stringify(reason));
+                await udpStreamHandler?.close(reason);
+                remoteSocketWrapper.close(reason);
+            },
         })
     ).catch((err) => {
         log("readableWebSocketStream pipeTo error", err);
+        remoteSocketWrapper.close(err);
+        closeDataStream(webSocket);
     });
 
     return new Response(null, {
@@ -1181,112 +1221,413 @@ async function websvcExecutorTr(request, config) {
     });
 }
 
-function websvcStream(pipeServer, earlyDataHeader, log) {
-    let readableStreamCancel = false;
+function websvcStream(pipeServer, earlyDataHeader, log, onClose) {
+    let streamClosed = false;
+    let sourceClosed = false;
+    let draining = false;
+    let queuedBytes = 0;
+    let controllerRef;
+    const messageQueue = [];
+
+    const getMessageSize = (message) => {
+        if (message instanceof ArrayBuffer || message instanceof Uint8Array) return message.byteLength;
+        if (message instanceof Blob) return message.size;
+        if (typeof message === "string") return new TextEncoder().encode(message).byteLength;
+        return 0;
+    };
+
+    const normalizeMessage = async (message) => {
+        if (message instanceof ArrayBuffer) return new Uint8Array(message);
+        if (message instanceof Uint8Array) return new Uint8Array(message.buffer, message.byteOffset, message.byteLength);
+        if (message instanceof Blob) return new Uint8Array(await message.arrayBuffer());
+        if (typeof message === "string") return new TextEncoder().encode(message);
+        throw new Error(`Unknown WS message type: ${typeof message}`);
+    };
+
+    const failStream = (error) => {
+        if (streamClosed) return;
+        streamClosed = true;
+        messageQueue.length = 0;
+        queuedBytes = 0;
+        onClose?.(error);
+        controllerRef?.error(error);
+    };
+
+    const drainQueue = async () => {
+        if (draining || streamClosed || !controllerRef) return;
+        draining = true;
+        try {
+            while (messageQueue.length && !streamClosed && controllerRef.desiredSize > 0) {
+                const item = messageQueue.shift();
+                const message = await normalizeMessage(item.message);
+                queuedBytes = Math.max(0, queuedBytes - item.size);
+                if (!streamClosed) controllerRef.enqueue(message);
+            }
+            if (sourceClosed && messageQueue.length === 0 && !streamClosed) {
+                streamClosed = true;
+                controllerRef.close();
+            }
+        } catch (error) {
+            failStream(error);
+        } finally {
+            draining = false;
+        }
+    };
+
+    const enqueueMessage = (message) => {
+        if (streamClosed || sourceClosed) return;
+        const size = getMessageSize(message);
+        const nextBytes = queuedBytes + size;
+        const nextItems = messageQueue.length + 1;
+        if (nextBytes > UPLOAD_QUEUE_MAX_BYTES || nextItems > UPLOAD_QUEUE_MAX_ITEMS) {
+            failStream(new Error(`WebSocket input queue overflow: ${nextBytes}B/${nextItems}`));
+            closeDataStream(pipeServer);
+            return;
+        }
+        queuedBytes = nextBytes;
+        messageQueue.push({ message, size });
+        drainQueue();
+    };
+
     const stream = new ReadableStream({
         start(controller) {
-            pipeServer.addEventListener('message', async (event) => {
-                let message = event.data;
-                if (message instanceof ArrayBuffer) {
-                    //
-                } else if (message instanceof Uint8Array) {
-                    message = message.buffer;
-                } else if (message instanceof Blob) {
-                    message = await message.arrayBuffer();
-                } else if (typeof message === "string") {
-                    message = new TextEncoder().encode(message).buffer;
-                } else {
-                    console.error("Unknown WS message type:", message);
-                    return;
-                }
-                controller.enqueue(new Uint8Array(message));
+            controllerRef = controller;
+            pipeServer.addEventListener('message', (event) => {
+                enqueueMessage(event.data);
             });
             pipeServer.addEventListener('close', () => {
-                closeDataStream(pipeServer);
-                controller.close();
+                if (streamClosed) return;
+                sourceClosed = true;
+                drainQueue();
             });
             pipeServer.addEventListener('error', (err) => {
                 log('pipeServer has error');
-                controller.error(err);
+                failStream(err);
             });
             const { earlyData, error } = b64ToBuf(earlyDataHeader);
             if (error) {
-                controller.error(error);
+                failStream(error);
             } else if (earlyData) {
-                controller.enqueue(earlyData);
+                enqueueMessage(earlyData);
             }
         },
         pull(controller) {
-            // if ws can stop read if stream is full, we can implement backpressure
+            return drainQueue();
         },
         cancel(reason) {
             log(`ReadableStream was canceled, due to ${reason}`)
-            readableStreamCancel = true;
+            if (streamClosed) return;
+            streamClosed = true;
+            messageQueue.length = 0;
+            queuedBytes = 0;
+            onClose?.(reason);
             closeDataStream(pipeServer);
         }
     });
     return stream;
 }
 
+function createRemoteSocketWrapper(log, onError) {
+    return {
+        value: null,
+        writer: null,
+        connectingPromise: null,
+        retryPromise: null,
+        retryBarrier: null,
+        uploadQueue: [],
+        uploadTimer: null,
+        draining: false,
+        activeBatchBytes: 0,
+        activeBatchItems: 0,
+        idleResolvers: [],
+        queuedBytes: 0,
+        generation: 0,
+        closed: false,
+        lastError: null,
+        setSocket(socket) {
+            if (this.closed) {
+                try { socket.close(); } catch (error) { }
+                throw new Error('remote socket wrapper is closed');
+            }
+            const oldSocket = this.value;
+            if (this.writer) {
+                try { this.writer.releaseLock(); } catch (error) { }
+            }
+            this.writer = null;
+            this.value = socket;
+            this.generation++;
+            if (oldSocket && oldSocket !== socket) {
+                try { oldSocket.close(); } catch (error) { }
+            }
+            return this.generation;
+        },
+        write(chunk) {
+            const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+            if (data.byteLength === 0) return;
+            const nextBytes = this.queuedBytes + data.byteLength;
+            const nextItems = this.uploadQueue.length + this.activeBatchItems + 1;
+            if (nextBytes > UPLOAD_QUEUE_MAX_BYTES || nextItems > UPLOAD_QUEUE_MAX_ITEMS) {
+                const error = new Error(`upload queue overflow: ${nextBytes}B/${nextItems}`);
+                this.close(error);
+                throw error;
+            }
+            this.queuedBytes = nextBytes;
+            this.uploadQueue.push(data);
+            if (this.queuedBytes >= UPLOAD_BATCH_TARGET_BYTES) {
+                if (this.uploadTimer) clearTimeout(this.uploadTimer);
+                this.uploadTimer = null;
+                this.drain();
+            } else if (!this.uploadTimer && !this.draining) {
+                this.uploadTimer = setTimeout(() => {
+                    this.uploadTimer = null;
+                    this.drain();
+                }, 1);
+            }
+        },
+        async drain() {
+            if (this.draining || this.closed) return;
+            this.draining = true;
+            try {
+                while (this.uploadQueue.length && !this.closed) {
+                    if (this.connectingPromise) await this.connectingPromise;
+                    if (this.closed || !this.value) throw new Error('remote socket is not available');
+                    if (!this.writer) this.writer = this.value.writable.getWriter();
+
+                    let batchBytes = 0;
+                    let batchItems = 0;
+                    while (batchItems < this.uploadQueue.length) {
+                        const nextLength = this.uploadQueue[batchItems].byteLength;
+                        if (batchItems > 0 && batchBytes + nextLength > UPLOAD_BATCH_TARGET_BYTES) break;
+                        batchBytes += nextLength;
+                        batchItems++;
+                        if (batchBytes >= UPLOAD_BATCH_TARGET_BYTES) break;
+                    }
+
+                    let batch;
+                    if (batchItems === 1) {
+                        batch = this.uploadQueue.shift();
+                    } else {
+                        batch = new Uint8Array(batchBytes);
+                        let offset = 0;
+                        for (let index = 0; index < batchItems; index++) {
+                            const item = this.uploadQueue.shift();
+                            batch.set(item, offset);
+                            offset += item.byteLength;
+                        }
+                    }
+                    this.activeBatchBytes = batchBytes;
+                    this.activeBatchItems = batchItems;
+                    await this.writer.write(batch);
+                    this.queuedBytes = Math.max(0, this.queuedBytes - batchBytes);
+                    this.activeBatchBytes = 0;
+                    this.activeBatchItems = 0;
+                }
+            } catch (error) {
+                this.close(error);
+            } finally {
+                this.draining = false;
+                if (this.uploadQueue.length && !this.closed) this.drain();
+                else this.resolveIdle();
+            }
+        },
+        resolveIdle() {
+            if (this.uploadQueue.length || this.draining || this.activeBatchItems) return;
+            const resolvers = this.idleResolvers;
+            this.idleResolvers = [];
+            for (const resolve of resolvers) resolve();
+        },
+        async waitForIdle() {
+            if (this.uploadQueue.length || this.draining || this.activeBatchItems) {
+                await new Promise(resolve => this.idleResolvers.push(resolve));
+            }
+            if (this.lastError) throw this.lastError;
+        },
+        async writeAndWait(chunk) {
+            this.write(chunk);
+            await this.waitForIdle();
+        },
+        async closeGracefully() {
+            if (this.closed) return;
+            if (this.uploadTimer) clearTimeout(this.uploadTimer);
+            this.uploadTimer = null;
+            this.drain();
+            let timeoutId;
+            try {
+                await Promise.race([
+                    this.waitForIdle(),
+                    new Promise(resolve => {
+                        timeoutId = setTimeout(resolve, UPLOAD_DRAIN_TIMEOUT_MS);
+                    })
+                ]);
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+                this.close();
+            }
+        },
+        async writeInitial(chunk) {
+            const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+            if (this.closed || !this.value) throw new Error('remote socket is not available');
+            if (!this.writer) this.writer = this.value.writable.getWriter();
+            if (data.byteLength > 0) await this.writer.write(data);
+        },
+        startReconnect() {
+            if (this.retryBarrier || this.closed) return;
+            let resolveBarrier;
+            const barrier = new Promise(resolve => {
+                resolveBarrier = resolve;
+            });
+            this.retryBarrier = { promise: barrier, resolve: resolveBarrier };
+            this.connectingPromise = barrier;
+        },
+        finishReconnect() {
+            if (!this.retryBarrier) return;
+            const barrier = this.retryBarrier;
+            this.retryBarrier = null;
+            if (this.connectingPromise === barrier.promise) this.connectingPromise = null;
+            barrier.resolve();
+        },
+        close(reason) {
+            if (this.closed) return;
+            this.closed = true;
+            this.generation++;
+            if (reason) {
+                this.lastError ||= reason instanceof Error ? reason : new Error(String(reason));
+                log(`[remoteSocketWrapper]--> close: ${reason.message || reason}`);
+                try { onError?.(reason); } catch (error) { }
+            }
+            if (this.uploadTimer) clearTimeout(this.uploadTimer);
+            this.uploadTimer = null;
+            this.uploadQueue = [];
+            this.queuedBytes = 0;
+            this.activeBatchBytes = 0;
+            this.activeBatchItems = 0;
+            if (this.writer) {
+                try { this.writer.releaseLock(); } catch (error) { }
+            }
+            this.writer = null;
+            if (this.value) {
+                try { this.value.close(); } catch (error) { }
+            }
+            this.value = null;
+            this.connectingPromise = null;
+            this.retryPromise = null;
+            if (this.retryBarrier) this.retryBarrier.resolve();
+            this.retryBarrier = null;
+            this.resolveIdle();
+        }
+    };
+}
+
+async function waitSocketOpened(socket, timeoutMs = TCP_CONNECT_TIMEOUT_MS) {
+    if (!socket.opened) return socket;
+    let timeoutId;
+    try {
+        await Promise.race([
+            socket.opened,
+            new Promise((resolve, reject) => {
+                timeoutId = setTimeout(() => reject(new Error(`TCP connection timeout after ${timeoutMs}ms`)), timeoutMs);
+            })
+        ]);
+        return socket;
+    } catch (error) {
+        try { socket.close(); } catch (closeError) { }
+        throw error;
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
+async function connectTcpSocket(address, port, concurrency = TCP_DIRECT_CONCURRENCY, timeoutMs = TCP_CONNECT_TIMEOUT_MS, log) {
+    const attemptCount = Math.max(1, Math.floor(Number(concurrency) || 1));
+    const attempts = Array.from({ length: attemptCount }, async () => {
+        const socket = connect({ hostname: address, port: port }, { allowHalfOpen: true });
+        await waitSocketOpened(socket, timeoutMs);
+        return socket;
+    });
+    let winner;
+    try {
+        winner = await Promise.any(attempts);
+        return winner;
+    } catch (error) {
+        const errors = Array.isArray(error?.errors) ? error.errors : [error];
+        const details = errors.map((item, index) => `#${index + 1} ${item?.message || item}`).join('; ');
+        log?.(`[connectTcpSocket]--> all ${attemptCount} attempts failed for ${address}:${port}: ${details}`);
+        throw new Error(`TCP connection failed for ${address}:${port}: ${details}`);
+    } finally {
+        if (winner) {
+            for (const attempt of attempts) {
+                attempt.then((socket) => {
+                    if (socket !== winner) {
+                        try { socket.close(); } catch (error) { }
+                    }
+                }).catch(() => { });
+            }
+        }
+    }
+}
+
 async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pipe, channelResponseHeader, log, addressType, config) {
 
-    async function connectAndWrite(address, port, socks = false) {
-        const tcpS = socks ? await serviceCall(addressType, address, port, config) : connect({ hostname: address, port: port, servername: addressRemote });
-        remoteS.value = tcpS;
-        log(`[connectAndWrite]--> s5:${socks} connected to ${address}:${port}`);
-        const writer = tcpS.writable.getWriter();
-        await writer.write(rawClientData);
-        writer.releaseLock();
+    async function connectAndWrite(address, port, socks = false, concurrency = config.tcpDirectConcurrency) {
+        const connectTask = socks
+            ? serviceCall(addressType, address, port, config)
+            : connectTcpSocket(address, port, concurrency, config.tcpConnectTimeout, log);
+        if (!remoteS.retryBarrier) remoteS.connectingPromise = connectTask;
+        let tcpS;
+        try {
+            tcpS = await connectTask;
+            if (!tcpS) throw new Error('TCP connection failed');
+            remoteS.setSocket(tcpS);
+            tcpS.closed.catch((error) => {
+                log(`[connectAndWrite]--> tcp closed error: ${error.message || error}`);
+            });
+            log(`[connectAndWrite]--> s5:${socks} connected to ${address}:${port}`);
+            await remoteS.writeInitial(rawClientData);
+            remoteS.finishReconnect();
+        } finally {
+            if (remoteS.connectingPromise === connectTask) remoteS.connectingPromise = null;
+        }
         return tcpS;
     }
 
     async function retry() {
         const finalHost = config.paddr || addressRemote;
         const finalPort = config.pnum || portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort, false, config.tcpProxyConcurrency);
         log(`[retry]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
-        let hasError = false;
-        tcpS.closed.catch(error => {
-            hasError = true;
-            log('[retry]--> tcpS closed error', error);
-        });
-        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
-        if (hasError) {
-            throw new Error("retry tcp closed");
-        }
-        closeDataStream(pipe);
+        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log, remoteS, remoteS.generation, true);
     }
 
     async function nat64() {
         const finalHost = await resolveDomainToRouteX(addressRemote, config);
         const finalPort = portRemote;
-        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort);
+        const tcpS = config.s5Enable ? await connectAndWrite(finalHost, finalPort, true) : await connectAndWrite(finalHost, finalPort, false, config.tcpDirectConcurrency);
         log(`[nat64]--> s5:${config.s5Enable} connected to ${finalHost}:${finalPort}`);
-        let hasError = false;
-        tcpS.closed.catch(error => {
-            hasError = true;
-            log('[nat64]--> tcpS closed error', error);
-        });
-        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log);
-        if (hasError) {
-            throw new Error("nat64 tcp closed");
-        }
-        closeDataStream(pipe);
+        await transferDataStream(tcpS, pipe, channelResponseHeader, null, log, remoteS, remoteS.generation, true);
     }
 
     async function finalStep() {
-        try {
+        if (remoteS.retryPromise) return remoteS.retryPromise;
+        remoteS.startReconnect();
+        const retryTask = (async () => {
+            let ok;
             if (config.p64) {
                 log('[finalStep] p64=true → try nat64() first, then retry() if nat64 fails');
-                const ok = await tryOnce(nat64, 'nat64');
-                if (!ok) await tryOnce(retry, 'retry');
+                ok = await tryOnce(nat64, 'nat64');
+                if (!ok) ok = await tryOnce(retry, 'retry');
             } else {
                 log('[finalStep] p64=false → try retry() first, then nat64() if retry fails');
-                const ok = await tryOnce(retry, 'retry');
-                if (!ok) await tryOnce(nat64, 'nat64');
+                ok = await tryOnce(retry, 'retry');
+                if (!ok) ok = await tryOnce(nat64, 'nat64');
             }
-        } catch (err) {
-            log('[finalStep] error:', err);
+            if (!ok) throw new Error('all retry connections failed');
+        })();
+        remoteS.retryPromise = retryTask;
+        try {
+            await retryTask;
+        } finally {
+            remoteS.finishReconnect();
+            if (remoteS.retryPromise === retryTask) remoteS.retryPromise = null;
         }
     }
 
@@ -1302,100 +1643,251 @@ async function handleTPOut(remoteS, addressRemote, portRemote, rawClientData, pi
     }
 
     const { finalHost, finalPort } = await getDomainToRouteX(addressRemote, portRemote, false, config);
-    const tcpS = await connectAndWrite(finalHost, finalPort, config.s5Enable ? true : false);
-    transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log);
+    const isDirectTarget = finalHost === addressRemote && Number(finalPort) === Number(portRemote);
+    const concurrency = isDirectTarget ? config.tcpDirectConcurrency : config.tcpProxyConcurrency;
+    const tcpS = await connectAndWrite(finalHost, finalPort, config.s5Enable ? true : false, concurrency);
+    const generation = remoteS.generation;
+    transferDataStream(tcpS, pipe, channelResponseHeader, finalStep, log, remoteS, generation).catch((error) => {
+        log(`[transferDataStream]--> unhandled error: ${error.message || error}`);
+        remoteS.close(error);
+        closeDataStream(pipe);
+    });
 }
 
-async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, log) {
-    let remoteChunkCount = 0;
-    let chunks = [];
-    let channelHeader = channelResponseHeader;
-    let hasIncomingData = false;
-    await remoteS.readable
-        .pipeTo(
-            new WritableStream({
-                start() {
-                },
-                async write(chunk, controller) {
-                    hasIncomingData = true;
-                    remoteChunkCount++;
-                    if (pipe.readyState !== WS_READY_STATE_OPEN) {
-                        controller.error(
-                            '[transferDataStream]--> pipe.readyState is not open, maybe close'
-                        );
-                    }
-                    if (channelHeader) {
-                        pipe.send(await new Blob([channelHeader, chunk]).arrayBuffer());
-                        channelHeader = null;
-                    } else {
-                        pipe.send(chunk);
-                    }
-                },
-                close() {
-                    log(`[transferDataStream]--> serviceCallion!.readable is close with hasIncomingData is ${hasIncomingData}`);
-                },
-                abort(reason) {
-                    console.error(`[transferDataStream]--> serviceCallion!.readable abort`, reason);
-                },
-            })
-        )
-        .catch((error) => {
-            console.error(`[transferDataStream]--> transferDataStream has exception `, error.stack || error);
-            closeDataStream(pipe);
-        });
+function createDownlinkSender(pipe, channelResponseHeader, isActive) {
+    let responseHeader = channelResponseHeader;
+    let buffer = new Uint8Array(DOWNLOAD_CHUNK_MAX_BYTES);
+    let bufferLength = 0;
+    let flushTimer = null;
+    let sendChain = Promise.resolve();
+    let sendError = null;
 
-    if (hasIncomingData === false && typeof retry === 'function') {
-        log(`[transferDataStream]--> no data, invoke finalStep flow`);
-        retry();
+    const sendRaw = (chunk) => {
+        if (sendError) throw sendError;
+        if (!isActive() || pipe.readyState !== WS_READY_STATE_OPEN) {
+            throw new Error('pipe.readyState is not open');
+        }
+        if (responseHeader) {
+            const response = new Uint8Array(responseHeader.byteLength + chunk.byteLength);
+            response.set(responseHeader, 0);
+            response.set(chunk, responseHeader.byteLength);
+            responseHeader = null;
+            pipe.send(response);
+        } else {
+            pipe.send(chunk);
+        }
+    };
+
+    const queueSend = (chunk) => {
+        const sendTask = sendChain.then(() => sendRaw(chunk)).catch((error) => {
+            sendError ||= error;
+            throw error;
+        });
+        sendChain = sendTask.catch(() => { });
+        return sendTask;
+    };
+
+    const flush = async () => {
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = null;
+        if (bufferLength === 0) return sendChain;
+        const chunk = buffer.slice(0, bufferLength);
+        bufferLength = 0;
+        return queueSend(chunk);
+    };
+
+    const scheduleFlush = () => {
+        if (flushTimer || bufferLength === 0) return;
+        flushTimer = setTimeout(() => {
+            flushTimer = null;
+            flush().catch(() => closeDataStream(pipe));
+        }, DOWNLOAD_BUFFER_DELAY_MS);
+    };
+
+    return {
+        async send(data) {
+            if (sendError) throw sendError;
+            const chunk = data instanceof Uint8Array ? data : new Uint8Array(data);
+            let offset = 0;
+            while (offset < chunk.byteLength) {
+                const remaining = chunk.byteLength - offset;
+                if (bufferLength === 0 && remaining >= DOWNLOAD_CHUNK_MAX_BYTES) {
+                    const end = offset + DOWNLOAD_CHUNK_MAX_BYTES;
+                    await queueSend(chunk.subarray(offset, end));
+                    offset = end;
+                    continue;
+                }
+                const copyLength = Math.min(DOWNLOAD_CHUNK_MAX_BYTES - bufferLength, remaining);
+                buffer.set(chunk.subarray(offset, offset + copyLength), bufferLength);
+                bufferLength += copyLength;
+                offset += copyLength;
+                if (bufferLength === DOWNLOAD_CHUNK_MAX_BYTES) await flush();
+            }
+            scheduleFlush();
+        },
+        async stopAndFlush() {
+            if (flushTimer) clearTimeout(flushTimer);
+            flushTimer = null;
+            await flush();
+            await sendChain;
+            if (sendError) throw sendError;
+        }
+    };
+}
+
+async function transferDataStream(remoteS, pipe, channelResponseHeader, retry, log, remoteSocketWrapper, generation, throwOnNoData = false) {
+    let hasIncomingData = false;
+    let reader;
+    let useBYOB = false;
+    let readError = null;
+    const isCurrentSocket = () => !remoteSocketWrapper || remoteSocketWrapper.generation === generation;
+    const downlinkSender = createDownlinkSender(pipe, channelResponseHeader, isCurrentSocket);
+
+    try {
+        try {
+            reader = remoteS.readable.getReader({ mode: 'byob' });
+            useBYOB = true;
+        } catch (error) {
+            reader = remoteS.readable.getReader();
+        }
+
+        if (useBYOB) {
+            let readBuffer = new ArrayBuffer(64 * 1024);
+            while (true) {
+                const { done, value } = await reader.read(new Uint8Array(readBuffer));
+                if (!isCurrentSocket()) return;
+                if (done) break;
+                if (!value || value.byteLength === 0) {
+                    readBuffer = new ArrayBuffer(64 * 1024);
+                    continue;
+                }
+                hasIncomingData = true;
+                await downlinkSender.send(value);
+                readBuffer = value.buffer.byteLength >= 64 * 1024 ? value.buffer : new ArrayBuffer(64 * 1024);
+            }
+        } else {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (!isCurrentSocket()) return;
+                if (done) break;
+                if (!value || value.byteLength === 0) continue;
+                hasIncomingData = true;
+                await downlinkSender.send(value);
+            }
+        }
+        if (isCurrentSocket()) await downlinkSender.stopAndFlush();
+        log(`[transferDataStream]--> remote readable is close with hasIncomingData is ${hasIncomingData}`);
+    } catch (error) {
+        readError = error;
+    } finally {
+        if (isCurrentSocket() && pipe.readyState === WS_READY_STATE_OPEN) {
+            try { await downlinkSender.stopAndFlush(); } catch (error) { readError ||= error; }
+        }
+        try { await reader?.cancel(); } catch (error) { }
+        try { reader?.releaseLock(); } catch (error) { }
+        if (isCurrentSocket()) {
+            try { remoteS.close(); } catch (error) { }
+        }
     }
+
+    if (!isCurrentSocket()) return;
+    if (hasIncomingData === false && typeof retry === 'function' && pipe.readyState === WS_READY_STATE_OPEN) {
+        log(`[transferDataStream]--> no data, invoke finalStep flow`);
+        await retry();
+        return;
+    }
+    if (hasIncomingData === false && throwOnNoData) {
+        remoteSocketWrapper?.startReconnect();
+        throw readError || new Error('remote connection closed without incoming data');
+    }
+    if (readError) log(`[transferDataStream]--> read error: ${readError.message || readError}`);
+    remoteSocketWrapper?.close(readError);
+    closeDataStream(pipe);
 }
 
 async function handleUPOut(pipe, channelResponseHeader, config) {
     let ischannelHeaderSent = false;
+    let pendingData = new Uint8Array(0);
+    let closed = false;
+    let closePromise = null;
+    const activeRequests = new Set();
     const transformStream = new TransformStream({
         start(controller) {
 
         },
         transform(chunk, controller) {
-            for (let index = 0; index < chunk.byteLength;) {
-                const lengthBuffer = chunk.slice(index, index + 2);
-                const udpPakcetLength = new DataView(lengthBuffer).getUint16(0);
-                const udpData = new Uint8Array(
-                    chunk.slice(index + 2, index + 2 + udpPakcetLength)
-                );
-                index = index + 2 + udpPakcetLength;
-                controller.enqueue(udpData);
+            const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+            if (data.byteLength > 0) {
+                const merged = new Uint8Array(pendingData.byteLength + data.byteLength);
+                merged.set(pendingData, 0);
+                merged.set(data, pendingData.byteLength);
+                pendingData = merged;
             }
+
+            let index = 0;
+            while (pendingData.byteLength - index >= 2) {
+                const udpPacketLength = (pendingData[index] << 8) | pendingData[index + 1];
+                if (udpPacketLength === 0) throw new Error('invalid empty UDP packet');
+                if (pendingData.byteLength - index < udpPacketLength + 2) break;
+                controller.enqueue(pendingData.slice(index + 2, index + 2 + udpPacketLength));
+                index += udpPacketLength + 2;
+            }
+            pendingData = index > 0 ? pendingData.slice(index) : pendingData;
         },
         flush(controller) {
+            if (pendingData.byteLength > 0) throw new Error(`incomplete UDP packet: ${pendingData.byteLength} bytes`);
         }
     });
 
-    transformStream.readable.pipeTo(new WritableStream({
+    const processingPromise = transformStream.readable.pipeTo(new WritableStream({
         async write(chunk) {
-            const resp = await fetch(config.durl, // dns server url
-                {
-                    method: 'POST',
-                    headers: {
-                        'content-type': 'application/dns-message',
-                    },
-                    body: chunk,
-                })
-            const dnsQueryResult = await resp.arrayBuffer();
-            const udpSize = dnsQueryResult.byteLength;
-            const udpSizeBuffer = new Uint8Array([(udpSize >> 8) & 0xff, udpSize & 0xff]);
-            if (pipe.readyState === WS_READY_STATE_OPEN) {
-                log(`doh success and dns message length is ${udpSize}`);
-                if (ischannelHeaderSent) {
-                    pipe.send(await new Blob([udpSizeBuffer, dnsQueryResult]).arrayBuffer());
-                } else {
-                    pipe.send(await new Blob([channelResponseHeader, udpSizeBuffer, dnsQueryResult]).arrayBuffer());
-                    ischannelHeaderSent = true;
+            if (closed) throw new Error('DNS stream is closed');
+            const abortController = new AbortController();
+            activeRequests.add(abortController);
+            const timeoutId = setTimeout(() => abortController.abort(new Error('DoH request timeout')), 10000);
+            try {
+                const resp = await fetch(config.durl, // dns server url
+                    {
+                        method: 'POST',
+                        headers: {
+                            'content-type': 'application/dns-message',
+                            'accept': 'application/dns-message',
+                        },
+                        body: chunk,
+                        signal: abortController.signal,
+                    });
+                if (!resp.ok) {
+                    try { await resp.body?.cancel(); } catch (error) { }
+                    throw new Error(`DoH request failed with status ${resp.status}`);
                 }
+                const dnsQueryResult = await resp.arrayBuffer();
+                const udpSize = dnsQueryResult.byteLength;
+                if (udpSize === 0 || udpSize > 65535) throw new Error(`invalid DoH response length: ${udpSize}`);
+                const udpSizeBuffer = new Uint8Array([(udpSize >> 8) & 0xff, udpSize & 0xff]);
+                if (!closed && pipe.readyState === WS_READY_STATE_OPEN) {
+                    log(`doh success and dns message length is ${udpSize}`);
+                    let response;
+                    if (ischannelHeaderSent) {
+                        response = new Uint8Array(udpSizeBuffer.byteLength + dnsQueryResult.byteLength);
+                        response.set(udpSizeBuffer, 0);
+                        response.set(new Uint8Array(dnsQueryResult), udpSizeBuffer.byteLength);
+                    } else {
+                        response = new Uint8Array(channelResponseHeader.byteLength + udpSizeBuffer.byteLength + dnsQueryResult.byteLength);
+                        response.set(channelResponseHeader, 0);
+                        response.set(udpSizeBuffer, channelResponseHeader.byteLength);
+                        response.set(new Uint8Array(dnsQueryResult), channelResponseHeader.byteLength + udpSizeBuffer.byteLength);
+                        ischannelHeaderSent = true;
+                    }
+                    pipe.send(response);
+                }
+            } finally {
+                clearTimeout(timeoutId);
+                activeRequests.delete(abortController);
             }
         }
     })).catch((err) => {
-        error('dns udp has error' + err)
+        error('dns udp has error' + err);
+        closeDataStream(pipe);
     });
 
     const writer = transformStream.writable.getWriter();
@@ -1406,65 +1898,127 @@ async function handleUPOut(pipe, channelResponseHeader, config) {
          * @param {Uint8Array} chunk
          */
         write(chunk) {
-            writer.write(chunk);
+            if (closed) return Promise.reject(new Error('DNS stream is closed'));
+            return writer.write(chunk);
+        },
+        close(reason) {
+            if (closePromise) return closePromise;
+            closed = true;
+            const closeError = reason instanceof Error ? reason : new Error(String(reason || 'DNS stream closed'));
+            for (const abortController of activeRequests) abortController.abort(closeError);
+            activeRequests.clear();
+            closePromise = (async () => {
+                try { await writer.close(); } catch (error) { }
+                try { writer.releaseLock(); } catch (error) { }
+                try { await processingPromise; } catch (error) { }
+            })();
+            return closePromise;
         }
     };
 }
 
 async function serviceCall(ipType, remoteIp, remotePort, config) {
     const { username, password, hostname, port } = config.parsedS5;
-    const socket = connect({ hostname, port });
+    const socket = connect({ hostname, port }, { allowHalfOpen: true });
+    await waitSocketOpened(socket, config.tcpConnectTimeout);
     const writer = socket.writable.getWriter();
     const reader = socket.readable.getReader();
     const encoder = new TextEncoder();
+    let readBuffer = new Uint8Array(0);
+
+    const readBytes = async (length) => {
+        while (readBuffer.byteLength < length) {
+            const { done, value } = await reader.read();
+            if (done || !value) throw new Error("SOCKS5 connection closed during handshake");
+            const chunk = value instanceof Uint8Array ? value : new Uint8Array(value);
+            const merged = new Uint8Array(readBuffer.byteLength + chunk.byteLength);
+            merged.set(readBuffer, 0);
+            merged.set(chunk, readBuffer.byteLength);
+            readBuffer = merged;
+        }
+        const result = readBuffer.slice(0, length);
+        readBuffer = readBuffer.slice(length);
+        return result;
+    };
+
+    const readSocksResponse = async () => {
+        const responseHeader = await readBytes(4);
+        if (responseHeader[0] !== 0x05) throw new Error("Invalid SOCKS5 response version");
+        if (responseHeader[1] !== 0x00) throw new Error(`SOCKS5 connection failed: ${responseHeader[1]}`);
+        if (responseHeader[2] !== 0x00) throw new Error("Invalid SOCKS5 reserved byte");
+        switch (responseHeader[3]) {
+            case 0x01:
+                await readBytes(4 + 2);
+                break;
+            case 0x03: {
+                const domainLength = (await readBytes(1))[0];
+                await readBytes(domainLength + 2);
+                break;
+            }
+            case 0x04:
+                await readBytes(16 + 2);
+                break;
+            default:
+                throw new Error(`Invalid SOCKS5 response address type: ${responseHeader[3]}`);
+        }
+    };
 
     const sendSocksGreeting = async () => {
-        const greeting = new Uint8Array([5, 2, 0, 2]);
+        const greeting = username && password
+            ? new Uint8Array([5, 2, 0, 2])
+            : new Uint8Array([5, 1, 0]);
         await writer.write(greeting);
     };
 
     const handleAuthResponse = async () => {
-        const res = (await reader.read()).value;
+        const res = await readBytes(2);
+        if (res[0] !== 0x05) throw new Error("Invalid SOCKS5 authentication version");
+        if (res[1] === 0xff) throw new Error("SOCKS5 has no acceptable authentication method");
         if (res[1] === 0x02) {
             if (!username || !password) {
                 throw new Error("Authentication required");
             }
+            const usernameBytes = encoder.encode(username);
+            const passwordBytes = encoder.encode(password);
+            if (usernameBytes.byteLength > 255 || passwordBytes.byteLength > 255) {
+                throw new Error("SOCKS5 username or password is too long");
+            }
             const authRequest = new Uint8Array([
-                1, username.length, ...encoder.encode(username),
-                password.length, ...encoder.encode(password)
+                1, usernameBytes.byteLength, ...usernameBytes,
+                passwordBytes.byteLength, ...passwordBytes
             ]);
             await writer.write(authRequest);
-            const authResponse = (await reader.read()).value;
+            const authResponse = await readBytes(2);
             if (authResponse[0] !== 0x01 || authResponse[1] !== 0x00) {
                 throw new Error("Authentication failed");
             }
-        }
+        } else if (res[1] !== 0x00) throw new Error(`Unsupported SOCKS5 authentication method: ${res[1]}`);
     };
 
     const sendSocksRequest = async () => {
         let DSTADDR;
-        switch (ipType) {
+        const addressType = getSocksAddressType(remoteIp, ipType);
+        switch (addressType) {
             case 1:
-                DSTADDR = new Uint8Array([1, ...remoteIp.split('.').map(Number)]);
+                DSTADDR = new Uint8Array([1, ...parseIPv4Address(remoteIp)]);
                 break;
-            case 2:
-                DSTADDR = new Uint8Array([3, remoteIp.length, ...encoder.encode(remoteIp)]);
+            case 2: {
+                const domainBytes = encoder.encode(remoteIp);
+                if (domainBytes.byteLength === 0 || domainBytes.byteLength > 255) {
+                    throw new Error("Invalid SOCKS5 domain length");
+                }
+                DSTADDR = new Uint8Array([3, domainBytes.byteLength, ...domainBytes]);
                 break;
+            }
             case 3:
-                DSTADDR = new Uint8Array([4, ...remoteIp.split(':').flatMap(x => [
-                    parseInt(x.slice(0, 2), 16), parseInt(x.slice(2), 16)
-                ])]);
+                DSTADDR = new Uint8Array([4, ...parseIPv6Address(remoteIp)]);
                 break;
             default:
                 throw new Error("Invalid address type");
         }
         const socksRequest = new Uint8Array([5, 1, 0, ...DSTADDR, remotePort >> 8, remotePort & 0xff]);
         await writer.write(socksRequest);
-
-        const response = (await reader.read()).value;
-        if (response[1] !== 0x00) {
-            throw new Error("Connection failed");
-        }
+        await readSocksResponse();
     };
 
     try {
@@ -1472,29 +2026,86 @@ async function serviceCall(ipType, remoteIp, remotePort, config) {
         await handleAuthResponse();
         await sendSocksRequest();
     } catch (err) {
-        error(err.message);
-        return null;
+        try { socket.close(); } catch (error) { }
+        throw err;
     } finally {
-        writer.releaseLock();
-        reader.releaseLock();
+        try { writer.releaseLock(); } catch (error) { }
+        try { reader.releaseLock(); } catch (error) { }
     }
     return socket;
 }
 
+function getSocksAddressType(address, fallbackType) {
+    const value = String(address || '').replace(/^\[|\]$/g, '');
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)) return 1;
+    if (value.includes(':')) return 3;
+    if (value) return 2;
+    return fallbackType;
+}
+
+function parseIPv4Address(address) {
+    const parts = String(address).split('.').map(Number);
+    if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) {
+        throw new Error("Invalid IPv4 address");
+    }
+    return parts;
+}
+
+function parseIPv6Address(address) {
+    let value = String(address || '').replace(/^\[|\]$/g, '').toLowerCase();
+    const doubleColonIndex = value.indexOf('::');
+    if (doubleColonIndex !== -1 && value.indexOf('::', doubleColonIndex + 1) !== -1) {
+        throw new Error("Invalid IPv6 address");
+    }
+
+    const convertIPv4Tail = (groups) => {
+        if (!groups.length || !groups[groups.length - 1].includes('.')) return groups;
+        const ipv4 = parseIPv4Address(groups.pop());
+        groups.push(((ipv4[0] << 8) | ipv4[1]).toString(16));
+        groups.push(((ipv4[2] << 8) | ipv4[3]).toString(16));
+        return groups;
+    };
+
+    let left = [];
+    let right = [];
+    if (doubleColonIndex === -1) {
+        left = convertIPv4Tail(value.split(':'));
+        if (left.length !== 8) throw new Error("Invalid IPv6 address");
+    } else {
+        left = convertIPv4Tail(value.slice(0, doubleColonIndex).split(':').filter(Boolean));
+        right = convertIPv4Tail(value.slice(doubleColonIndex + 2).split(':').filter(Boolean));
+        const missingGroups = 8 - left.length - right.length;
+        if (missingGroups < 1) throw new Error("Invalid IPv6 address");
+        left = [...left, ...new Array(missingGroups).fill('0'), ...right];
+    }
+
+    const result = new Uint8Array(16);
+    left.forEach((group, index) => {
+        if (!/^[0-9a-f]{1,4}$/.test(group)) throw new Error("Invalid IPv6 address");
+        const value = parseInt(group, 16);
+        result[index * 2] = value >> 8;
+        result[index * 2 + 1] = value & 0xff;
+    });
+    return result;
+}
+
 function handleRequestHeader(channelBuffer, id) {
-    if (channelBuffer.byteLength < 24) {
+    const data = channelBuffer instanceof Uint8Array ? channelBuffer : new Uint8Array(channelBuffer);
+    const length = data.byteLength;
+    if (length < 24) {
         return {
             hasError: true,
             message: 'invalid data',
         };
     }
 
-    const version = new Uint8Array(channelBuffer.slice(0, 1));
+    const version = data.slice(0, 1);
     let isValidUser = false;
     let isUDP = false;
-    const slicedBuffer = new Uint8Array(channelBuffer.slice(1, 17));
+    const slicedBuffer = data.slice(1, 17);
     const slicedBufferString = stringify(slicedBuffer);
-    const uuids = id.includes(',') ? id.split(",") : [id];
+    const userId = String(id || '');
+    const uuids = userId.includes(',') ? userId.split(",") : [userId];
 
     isValidUser = uuids.some(userUuid => slicedBufferString === userUuid.trim()) || uuids.length === 1 && slicedBufferString === uuids[0].trim();
     if (!isValidUser) {
@@ -1504,10 +2115,15 @@ function handleRequestHeader(channelBuffer, id) {
         };
     }
 
-    const optLength = new Uint8Array(channelBuffer.slice(17, 18))[0];
-    const command = new Uint8Array(
-        channelBuffer.slice(18 + optLength, 18 + optLength + 1)
-    )[0];
+    const optLength = data[17];
+    const commandIndex = 18 + optLength;
+    if (length < commandIndex + 4) {
+        return {
+            hasError: true,
+            message: 'invalid request header length',
+        };
+    }
+    const command = data[commandIndex];
 
     if (command === 1) {
         isUDP = false;
@@ -1519,39 +2135,44 @@ function handleRequestHeader(channelBuffer, id) {
             message: `command ${command} is not support, command 01-tcp,02-udp,03-mux`,
         };
     }
-    const portIndex = 18 + optLength + 1;
-    const portBuffer = channelBuffer.slice(portIndex, portIndex + 2);
-    const portRemote = new DataView(portBuffer).getUint16(0);
+    const portIndex = commandIndex + 1;
+    const portRemote = (data[portIndex] << 8) | data[portIndex + 1];
 
     let addressIndex = portIndex + 2;
-    const addressBuffer = new Uint8Array(
-        channelBuffer.slice(addressIndex, addressIndex + 1)
-    );
-
-    const addressType = addressBuffer[0];
+    const addressType = data[addressIndex];
     let addressLength = 0;
     let addressValueIndex = addressIndex + 1;
     let addressValue = '';
     switch (addressType) {
         case 1:
             addressLength = 4;
-            addressValue = new Uint8Array(
-                channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
-            ).join('.');
+            if (length < addressValueIndex + addressLength) {
+                return { hasError: true, message: 'invalid IPv4 address length' };
+            }
+            addressValue = data.slice(addressValueIndex, addressValueIndex + addressLength).join('.');
             break;
         case 2:
-            addressLength = new Uint8Array(
-                channelBuffer.slice(addressValueIndex, addressValueIndex + 1)
-            )[0];
+            if (length < addressValueIndex + 1) {
+                return { hasError: true, message: 'invalid domain length' };
+            }
+            addressLength = data[addressValueIndex];
             addressValueIndex += 1;
+            if (addressLength === 0 || length < addressValueIndex + addressLength) {
+                return { hasError: true, message: 'invalid domain data' };
+            }
             addressValue = new TextDecoder().decode(
-                channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
+                data.slice(addressValueIndex, addressValueIndex + addressLength)
             );
             break;
         case 3:
             addressLength = 16;
+            if (length < addressValueIndex + addressLength) {
+                return { hasError: true, message: 'invalid IPv6 address length' };
+            }
             const dataView = new DataView(
-                channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
+                data.buffer,
+                data.byteOffset + addressValueIndex,
+                addressLength
             );
             // 2001:0db8:85a3:0000:0000:8a2e:0370:7334
             const ipv6 = [];
@@ -1587,20 +2208,21 @@ function handleRequestHeader(channelBuffer, id) {
 }
 
 async function handleRequestHeaderTr(buffer, id) {
-    if (buffer.byteLength < 56) {
+    const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    if (data.byteLength < 58) {
         return {
             hasError: true,
             message: "invalid data"
         };
     }
     let crLfIndex = 56;
-    if (new Uint8Array(buffer.slice(56, 57))[0] !== 0x0d || new Uint8Array(buffer.slice(57, 58))[0] !== 0x0a) {
+    if (data[56] !== 0x0d || data[57] !== 0x0a) {
         return {
             hasError: true,
             message: "invalid header format (missing CR LF)"
         };
     }
-    const password = new TextDecoder().decode(buffer.slice(0, crLfIndex));
+    const password = new TextDecoder().decode(data.slice(0, crLfIndex));
     if (password !== sha256.sha224(id)) {
         return {
             hasError: true,
@@ -1608,7 +2230,7 @@ async function handleRequestHeaderTr(buffer, id) {
         };
     }
 
-    const s5DataBuffer = buffer.slice(crLfIndex + 2);
+    const s5DataBuffer = data.slice(crLfIndex + 2);
     if (s5DataBuffer.byteLength < 6) {
         return {
             hasError: true,
@@ -1632,22 +2254,30 @@ async function handleRequestHeaderTr(buffer, id) {
     switch (addressType) {
         case 1:
             addressLength = 4;
-            address = new Uint8Array(
-                s5DataBuffer.slice(addressIndex, addressIndex + addressLength)
-            ).join(".");
+            if (s5DataBuffer.byteLength < addressIndex + addressLength) {
+                return { hasError: true, message: "invalid IPv4 address length" };
+            }
+            address = s5DataBuffer.slice(addressIndex, addressIndex + addressLength).join(".");
             break;
         case 3:
-            addressLength = new Uint8Array(
-                s5DataBuffer.slice(addressIndex, addressIndex + 1)
-            )[0];
+            if (s5DataBuffer.byteLength < addressIndex + 1) {
+                return { hasError: true, message: "invalid domain length" };
+            }
+            addressLength = s5DataBuffer[addressIndex];
             addressIndex += 1;
+            if (addressLength === 0 || s5DataBuffer.byteLength < addressIndex + addressLength) {
+                return { hasError: true, message: "invalid domain data" };
+            }
             address = new TextDecoder().decode(
                 s5DataBuffer.slice(addressIndex, addressIndex + addressLength)
             );
             break;
         case 4:
             addressLength = 16;
-            const dataView = new DataView(s5DataBuffer.slice(addressIndex, addressIndex + addressLength));
+            if (s5DataBuffer.byteLength < addressIndex + addressLength) {
+                return { hasError: true, message: "invalid IPv6 address length" };
+            }
+            const dataView = new DataView(s5DataBuffer.buffer, s5DataBuffer.byteOffset + addressIndex, addressLength);
             const ipv6 = [];
             for (let i = 0; i < 8; i++) {
                 ipv6.push(dataView.getUint16(i * 2).toString(16));
@@ -1669,8 +2299,10 @@ async function handleRequestHeaderTr(buffer, id) {
     }
 
     const portIndex = addressIndex + addressLength;
-    const portBuffer = s5DataBuffer.slice(portIndex, portIndex + 2);
-    const portRemote = new DataView(portBuffer).getUint16(0);
+    if (s5DataBuffer.byteLength < portIndex + 2) {
+        return { hasError: true, message: "invalid port data" };
+    }
+    const portRemote = (s5DataBuffer[portIndex] << 8) | s5DataBuffer[portIndex + 1];
     return {
         hasError: false,
         message: null,
